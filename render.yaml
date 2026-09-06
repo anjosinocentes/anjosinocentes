@@ -1,0 +1,14 @@
+services:
+  # Frontend + API Next.js (as rotas /api internas falam direto com o Postgres/Supabase)
+  - type: web
+    name: projeto-anjos-inocentes
+    env: node
+    buildCommand: npm install && npm run build --prefix apps/web
+    startCommand: npm run start --prefix apps/web
+    envVars:
+      # Defina no painel do Render (Environment) - nunca commite o valor aqui.
+      - key: JWT_SECRET
+        sync: false
+      # Connection string do Postgres (Supabase) - Project Settings > Database > Connection string (URI).
+      - key: DATABASE_URL
+        sync: false
