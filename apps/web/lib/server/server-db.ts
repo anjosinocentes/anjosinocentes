@@ -18,7 +18,10 @@ if (!process.env.JWT_SECRET) {
 }
 const JWT_SECRET = process.env.JWT_SECRET
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DATABASE_URL
+// IMPORTANTE: usar SOMENTE DATABASE_URL (variável de servidor). Nunca aceitar uma variável
+// com prefixo NEXT_PUBLIC_, pois esse prefixo embute o valor no bundle do navegador e vazaria
+// a connection string (com senha) do Postgres para qualquer visitante.
+const DATABASE_URL = process.env.DATABASE_URL
 if (!DATABASE_URL) {
   throw new Error("DATABASE_URL não configurado. Defina a variável de ambiente com a connection string do Postgres (Supabase).")
 }

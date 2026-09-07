@@ -211,7 +211,7 @@ function makeCollection(pool: Pool, table: string) {
     },
     async updateOne(filter: Record<string, any>, update: { $set?: any; $unset?: any }) {
       const params: any[] = [JSON.stringify(prepareForStorage(update.$set || {}))]
-      const unsetExpr = Object.keys(update.$unset || {}).map((k) => ` - '${k}'`).join("")
+      const unsetExpr = Object.keys(update.$unset || {}).map((k) => ` - '${assertField(k)}'`).join("")
       const where = buildWhere(filter, params)
       await pool.query(
         `UPDATE "${table}" SET doc = (doc${unsetExpr}) || $1::jsonb WHERE id = (SELECT id FROM "${table}" WHERE ${where} LIMIT 1)`,
@@ -221,7 +221,7 @@ function makeCollection(pool: Pool, table: string) {
     },
     async updateMany(filter: Record<string, any>, update: { $set?: any; $unset?: any }) {
       const params: any[] = [JSON.stringify(prepareForStorage(update.$set || {}))]
-      const unsetExpr = Object.keys(update.$unset || {}).map((k) => ` - '${k}'`).join("")
+      const unsetExpr = Object.keys(update.$unset || {}).map((k) => ` - '${assertField(k)}'`).join("")
       const where = buildWhere(filter, params)
       await pool.query(`UPDATE "${table}" SET doc = (doc${unsetExpr}) || $1::jsonb WHERE ${where}`, params)
       return { acknowledged: true }
@@ -249,7 +249,7 @@ function makeCollection(pool: Pool, table: string) {
     },
     async findOneAndUpdate(filter: Record<string, any>, update: { $set?: any; $unset?: any }, _opts?: any) {
       const params: any[] = [JSON.stringify(prepareForStorage(update.$set || {}))]
-      const unsetExpr = Object.keys(update.$unset || {}).map((k) => ` - '${k}'`).join("")
+      const unsetExpr = Object.keys(update.$unset || {}).map((k) => ` - '${assertField(k)}'`).join("")
       const where = buildWhere(filter, params)
       const { rows } = await pool.query(
         `UPDATE "${table}" SET doc = (doc${unsetExpr}) || $1::jsonb WHERE id = (SELECT id FROM "${table}" WHERE ${where} LIMIT 1) RETURNING doc`,
