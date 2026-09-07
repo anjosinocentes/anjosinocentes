@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { updateProfile, changePassword, getReportsStats } from "@/lib/api"
+import { PASSWORD_REQUIREMENTS, getPasswordValidationError } from "@/lib/password-policy"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Settings,
@@ -136,8 +137,9 @@ export default function ConfiguracoesPage() {
     setPasswordError("")
     setPasswordSuccess("")
 
-    if (newPassword.length < 6) {
-      setPasswordError("A nova senha deve ter no mínimo 6 caracteres")
+    const pwError = getPasswordValidationError(newPassword)
+    if (pwError) {
+      setPasswordError(pwError)
       return
     }
 
@@ -313,8 +315,23 @@ export default function ConfiguracoesPage() {
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
+                      minLength={8}
                       required
                     />
+                    <ul className="mt-1 space-y-1">
+                      {PASSWORD_REQUIREMENTS.map((req) => {
+                        const ok = req.test(newPassword)
+                        return (
+                          <li
+                            key={req.key}
+                            className={`flex items-center gap-2 text-xs ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}
+                          >
+                            <span className={`inline-block h-1.5 w-1.5 rounded-full ${ok ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                            {req.label}
+                          </li>
+                        )
+                      })}
+                    </ul>
                   </div>
                 </div>
                 <Button type="submit" variant="outline">Alterar Senha</Button>

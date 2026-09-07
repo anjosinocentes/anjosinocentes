@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { getDb, normalizeDoc, loginUser, getUserByToken, sanitizeUser } from "@/lib/server/server-db"
 import { requireAuth, requireRole } from "@/lib/server/server-auth"
 import { courseUpdateSchema, lessonSchema, firstZodError } from "@/lib/schemas"
+import { getPasswordValidationError } from "@/lib/password-policy"
 
 function normalizeText(str: string) {
   return (str || "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -140,7 +141,11 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
     if (auth instanceof NextResponse) return auth
     if (method === "POST") {
       const body = await req.json()
-      const passwordHash = await bcrypt.hash(body.password || "123456", 10)
+      const pwError = getPasswordValidationError(body.password)
+      if (pwError) {
+        return NextResponse.json({ error: pwError }, { status: 400 })
+      }
+      const passwordHash = await bcrypt.hash(body.password, 10)
       const newId = crypto.randomUUID()
       const { password, ...rest } = body
       const newDoc = { id: newId, ...rest, passwordHash, active: true, created_at: new Date().toISOString() }

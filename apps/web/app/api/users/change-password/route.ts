@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, getActorFromRequest } from "@/lib/server/server-db"
 import bcrypt from "bcryptjs"
+import { getPasswordValidationError } from "@/lib/password-policy"
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,8 +9,9 @@ export async function POST(req: NextRequest) {
     if (!actor) return NextResponse.json({ error: "Não autenticado" }, { status: 401 })
 
     const { currentPassword, newPassword } = await req.json()
-    if (!newPassword || newPassword.length < 6) {
-      return NextResponse.json({ error: "A nova senha deve ter pelo menos 6 caracteres" }, { status: 400 })
+    const pwError = getPasswordValidationError(newPassword)
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 })
     }
 
     const db = await getDb()

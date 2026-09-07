@@ -141,7 +141,7 @@ export const announcementUpdateSchema = z.object({
 export const teacherSchema = z.object({
   name: trimmedString(2, 150, "Nome"),
   email: z.string({ required_error: "E-mail é obrigatório" }).trim().refine(isValidEmailFormat, "E-mail inválido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres").optional(),
+  password: z.string().optional(),
   role: z.enum(["ADMIN", "DIRECTOR", "COORDINATOR", "SECRETARY", "TEACHER"]).optional(),
 }).passthrough()
 

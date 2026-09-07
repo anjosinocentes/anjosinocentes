@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import { requireRole, canAssignRole } from "@/lib/server/server-auth"
 import { teacherSchema, firstZodError } from "@/lib/schemas"
 import { defaultPermissionsForRole } from "@/lib/permissions"
+import { getPasswordValidationError } from "@/lib/password-policy"
 import type { UserRole } from "@/lib/auth"
 
 // Garante que cada colaborador tenha permissões coerentes com o cargo (contas antigas/criadas
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
     const body = parsed.data
     if (!body.password) {
       return NextResponse.json({ error: "A senha inicial é obrigatória" }, { status: 400 })
+    }
+    const pwError = getPasswordValidationError(body.password)
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 })
     }
     // Anti-escalação de privilégio: o cargo é validado no servidor pelo papel do usuário autenticado,
     // NUNCA confiando no valor enviado pelo frontend. Cargo ausente cai no menos privilegiado (TEACHER).

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import bcrypt from "bcryptjs"
 import { requireRole } from "@/lib/server/server-auth"
+import { getPasswordValidationError } from "@/lib/password-policy"
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const auth = await requireRole(req, "DIRECTOR")
@@ -9,8 +10,9 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   try {
     const { id } = await props.params
     const { password } = await req.json()
-    if (!password || password.length < 6) {
-      return NextResponse.json({ error: "A senha deve ter pelo menos 6 caracteres" }, { status: 400 })
+    const pwError = getPasswordValidationError(password)
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 })
     }
 
     const passwordHash = await bcrypt.hash(password, 10)

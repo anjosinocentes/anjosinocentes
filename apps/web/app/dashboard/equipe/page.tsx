@@ -65,6 +65,26 @@ import { updateTeacher, deleteTeacher, resetPassword, getAuditLogs, getClasses, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import type { Turma } from "@/lib/types"
+import { PASSWORD_REQUIREMENTS, getPasswordValidationError } from "@/lib/password-policy"
+
+function PasswordRequirements({ password }: { password: string }) {
+  return (
+    <ul className="mt-1 space-y-1">
+      {PASSWORD_REQUIREMENTS.map((req) => {
+        const ok = req.test(password)
+        return (
+          <li
+            key={req.key}
+            className={`flex items-center gap-2 text-xs ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}
+          >
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${ok ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+            {req.label}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
 
 const permissionOptions: Array<{ value: Permission; label: string; description: string }> = [
   { value: PERMISSIONS.ALUNOS, label: "Crianças", description: "Cadastrar e editar crianças" },
@@ -331,6 +351,11 @@ export default function ProfessoresPage() {
     if (!resettingTeacher) return
     setError("")
     setSuccess("")
+    const pwError = getPasswordValidationError(newPassword)
+    if (pwError) {
+      setError(pwError)
+      return
+    }
     setSaving(true)
     try {
       await resetPassword(resettingTeacher.id, { password: newPassword })
@@ -350,6 +375,13 @@ export default function ProfessoresPage() {
     e.preventDefault()
     setError("")
     setSuccess("")
+    if (!editingTeacher) {
+      const pwError = getPasswordValidationError(form.password)
+      if (pwError) {
+        setError(pwError)
+        return
+      }
+    }
     setSaving(true)
 
     try {
@@ -586,10 +618,11 @@ export default function ProfessoresPage() {
                         type="password"
                         value={form.password}
                         onChange={(e) => setForm({ ...form, password: e.target.value })}
-                        placeholder="Mínimo 6 caracteres"
-                        minLength={6}
+                        placeholder="Mínimo 8 caracteres"
+                        minLength={8}
                         required
                       />
+                      <PasswordRequirements password={form.password} />
                     </div>
                   )}
                 </div>
@@ -1170,10 +1203,11 @@ export default function ProfessoresPage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                minLength={6}
+                placeholder="Mínimo 8 caracteres"
+                minLength={8}
                 required
               />
+              <PasswordRequirements password={newPassword} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>
