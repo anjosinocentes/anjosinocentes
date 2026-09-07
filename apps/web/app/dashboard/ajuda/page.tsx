@@ -7,11 +7,9 @@ import {
   Book,
   Phone,
   ChevronDown,
-  ExternalLink,
   PlayCircle,
   FileText
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
@@ -179,24 +177,6 @@ export default function AjudaPage() {
               <p className="text-sm text-primary font-medium">(42) 99825-2317</p>
             </div>
           </a>
-        </CardContent>
-      </Card>
-
-      {/* Feedback */}
-      <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">Não encontrou o que procurava?</h3>
-              <p className="text-sm text-muted-foreground">
-                Envie sua sugestão ou dúvida e ajude-nos a melhorar o sistema
-              </p>
-            </div>
-            <Button variant="outline">
-              Enviar Feedback
-              <ExternalLink className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
