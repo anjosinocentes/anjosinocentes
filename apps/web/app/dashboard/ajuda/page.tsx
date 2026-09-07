@@ -169,13 +169,16 @@ export default function AjudaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
+          <a
+            href="tel:+5542998252317"
+            className="flex items-center gap-3 p-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors"
+          >
             <Phone className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-medium">Telefone</p>
-              <p className="text-sm text-muted-foreground">(42) 99825-2317</p>
+              <p className="text-sm text-primary font-medium">(42) 99825-2317</p>
             </div>
-          </div>
+          </a>
         </CardContent>
       </Card>
 
