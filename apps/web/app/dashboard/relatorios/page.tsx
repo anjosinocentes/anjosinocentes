@@ -15,6 +15,7 @@ import {
   Printer,
   FileText,
   Layers,
+  Target,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -48,6 +49,7 @@ import { RelatorioPresencaTurma } from "@/components/reports/relatorio-presenca-
 import { RelatorioFichaAluno } from "@/components/reports/relatorio-ficha-aluno"
 import { RelatorioFrequenciaTurmas } from "@/components/reports/relatorio-frequencia-turmas"
 import { RelatorioInstitucional } from "@/components/reports/relatorio-institucional"
+import { RelatorioPdiAluno } from "@/components/reports/relatorio-pdi-aluno"
 import type { Aluno, Turma } from "@/lib/types"
 
 // Central de Relatórios: por ora, somente os dois relatórios de presença abaixo (o antigo grid
@@ -59,6 +61,12 @@ const centralDeRelatorios = [
     titulo: 'Ficha Cadastral do Aluno',
     descricao: 'Todos os dados de cadastro de uma criança, para imprimir ou salvar em PDF',
     icon: FileText,
+  },
+  {
+    id: 'pdi-aluno' as const,
+    titulo: 'Relatório de PDI do Aluno',
+    descricao: 'Plano de Desenvolvimento Individual: situação inicial, áreas e evoluções',
+    icon: Target,
   },
   {
     id: 'presenca-aluno' as const,
@@ -501,6 +509,12 @@ export default function RelatoriosPage() {
       <RelatorioFichaAluno
         open={relatorioAberto === "ficha-aluno"}
         onOpenChange={(open) => setRelatorioAberto(open ? "ficha-aluno" : null)}
+        students={students}
+        classes={classes}
+      />
+      <RelatorioPdiAluno
+        open={relatorioAberto === "pdi-aluno"}
+        onOpenChange={(open) => setRelatorioAberto(open ? "pdi-aluno" : null)}
         students={students}
         classes={classes}
       />
