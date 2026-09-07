@@ -11,6 +11,9 @@ next.user-config.*
 .env
 .env*.local
 
+# Credenciais/segredos - NUNCA versionar
+CREDENCIAIS.md
+
 # Common ignores
 node_modules
 .next/
