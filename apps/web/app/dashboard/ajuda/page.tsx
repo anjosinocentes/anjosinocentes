@@ -5,8 +5,6 @@ import {
   HelpCircle, 
   Search,
   Book,
-  MessageCircle,
-  Mail,
   Phone,
   ChevronDown,
   ExternalLink,
@@ -160,59 +158,26 @@ export default function AjudaPage() {
       </Card>
 
       {/* Contato */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Suporte Direto (WhatsApp)
-            </CardTitle>
-            <CardDescription>
-              Fale diretamente com o Guilherme via WhatsApp
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Precisa de ajuda imediata ou atendimento personalizado? Clique no botão abaixo para abrir a conversa no WhatsApp do Guilherme.
-            </p>
-            <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
-              <a
-                href="https://wa.me/5511999999999?text=Ol%C3%A1%20Guilherme,%20preciso%20de%20suporte%20no%20sistema%20Anjos%20Inocentes"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Falar com Guilherme no WhatsApp
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Outros Canais</CardTitle>
-            <CardDescription>
-              Entre em contato por e-mail ou telefone
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
-              <Mail className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm font-medium">E-mail</p>
-                <p className="text-sm text-muted-foreground">suporte@anjosinocentes.org.br</p>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            Contato
+          </CardTitle>
+          <CardDescription>
+            Precisa de ajuda? Fale com a equipe pelo telefone abaixo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
+            <Phone className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium">Telefone</p>
+              <p className="text-sm text-muted-foreground">(42) 99825-2317</p>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
-              <Phone className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm font-medium">Telefone</p>
-                <p className="text-sm text-muted-foreground">(11) 1234-5678</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Feedback */}
       <Card className="bg-primary/5 border-primary/20">
