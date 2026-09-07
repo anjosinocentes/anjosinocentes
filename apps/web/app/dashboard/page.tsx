@@ -2,12 +2,35 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, BookOpen, TrendingUp, AlertTriangle, LayoutDashboard } from "lucide-react"
-import { getStudentsStats, getReportsStats, type StudentStats } from "@/lib/api"
+import { Users, UserCheck, BookOpen, TrendingUp, AlertTriangle, LayoutDashboard, Cake, CalendarClock } from "lucide-react"
+import { getStudentsStats, getReportsStats, getStudents, getEvents, type StudentStats } from "@/lib/api"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 import { useAuth } from "@/components/auth/auth-provider"
 import { hasPermission, PERMISSIONS } from "@/lib/permissions"
+import type { Evento } from "@/lib/types"
+
+// Extrai mês (0-11) e dia de uma data em "yyyy-mm-dd", ISO ou "dd/mm/aaaa".
+function parseMonthDay(value?: string): { mes: number; dia: number } | null {
+  if (!value) return null
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const [, m, d] = value.slice(0, 10).split("-").map(Number)
+    return m && d ? { mes: m - 1, dia: d } : null
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+    const [d, m] = value.split("/").map(Number)
+    return m && d ? { mes: m - 1, dia: d } : null
+  }
+  const dt = new Date(value)
+  return isNaN(dt.getTime()) ? null : { mes: dt.getMonth(), dia: dt.getDate() }
+}
+
+const TIPO_EVENTO_LABEL: Record<string, string> = {
+  aula: "Aula",
+  evento: "Evento",
+  reuniao: "Reunião",
+  feriado: "Feriado",
+}
 import {
   Table,
   TableBody,
@@ -57,6 +80,8 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [reportsData, setReportsData] = useState<any | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [aniversariantes, setAniversariantes] = useState<Array<{ nome: string; label: string }>>([])
+  const [proximosEventos, setProximosEventos] = useState<Evento[]>([])
   // Só renderiza o gráfico depois do primeiro layout: no mobile o ResponsiveContainer chega a
   // medir largura 0 no primeiro paint, empilhando todas as barras no mesmo x e gerando keys
   // duplicadas no Recharts (warning "same key rectangle-..."). Esperar 1 frame garante largura real.
@@ -98,6 +123,38 @@ export default function DashboardPage() {
         console.error(err)
         setError("Erro ao carregar dados. Verifique a conexão com o servidor.")
       })
+  }, [])
+
+  // Aniversariantes do mês atual + próximos eventos do calendário
+  useEffect(() => {
+    getStudents()
+      .then((alunos) => {
+        const mesAtual = new Date().getMonth()
+        const lista = alunos
+          .map((a) => {
+            const md = parseMonthDay(a.dataNascimento)
+            return md ? { nome: a.nome, mes: md.mes, dia: md.dia } : null
+          })
+          .filter((x): x is { nome: string; mes: number; dia: number } => !!x && x.mes === mesAtual)
+          .sort((a, b) => a.dia - b.dia)
+          .map((x) => ({
+            nome: x.nome,
+            label: `${String(x.dia).padStart(2, "0")}/${String(mesAtual + 1).padStart(2, "0")}`,
+          }))
+        setAniversariantes(lista)
+      })
+      .catch(() => {})
+
+    getEvents()
+      .then((eventos) => {
+        const hojeStr = new Date().toISOString().slice(0, 10)
+        const prox = (eventos || [])
+          .filter((e) => typeof e.data === "string" && e.data >= hojeStr)
+          .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0))
+          .slice(0, 5)
+        setProximosEventos(prox)
+      })
+      .catch(() => {})
   }, [])
 
   const totalAlunos = dashboardData?.totalAlunos || 0
@@ -325,6 +382,63 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Aniversariantes + Próximos eventos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Cake className="h-4 w-4 text-primary" />
+              Aniversariantes do mês
+            </CardTitle>
+            <CardDescription>Crianças que fazem aniversário este mês</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {aniversariantes.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">Nenhum aniversariante este mês.</p>
+            ) : (
+              <ul className="space-y-2 max-h-64 overflow-y-auto">
+                {aniversariantes.map((a, i) => (
+                  <li key={i} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium text-foreground truncate">{a.nome}</span>
+                    <span className="text-muted-foreground shrink-0">{a.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" />
+              Próximos eventos
+            </CardTitle>
+            <CardDescription>Os próximos eventos do calendário</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {proximosEventos.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">Nenhum evento futuro.</p>
+            ) : (
+              <ul className="space-y-2 max-h-64 overflow-y-auto">
+                {proximosEventos.map((e) => (
+                  <li key={e.id} className="flex items-start justify-between gap-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{e.titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR")}
+                        {e.horario ? ` · ${e.horario}` : ""}
+                        {e.tipo ? ` · ${TIPO_EVENTO_LABEL[e.tipo] ?? e.tipo}` : ""}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Access */}
       {(canAlunos || canPresenca || canAulas) && (
