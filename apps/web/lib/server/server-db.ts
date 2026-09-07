@@ -155,11 +155,14 @@ export async function loginUser(email: string, password: string) {
   }
 }
 
-// Sessão em dois tokens: um ACCESS curto (30 min) para autenticar as chamadas e um REFRESH longo
-// (7 dias) usado só para renovar o access. Assim, um access vazado expira rápido; o refresh fica
-// num cookie de path restrito (/api/auth/refresh). Ambos são JWT assinados com o mesmo JWT_SECRET.
-export const ACCESS_TTL_SECONDS = 60 * 30
-export const REFRESH_TTL_SECONDS = 60 * 60 * 24 * 7
+// Sessão em dois tokens: um ACCESS curto (15 min) para autenticar as chamadas e um REFRESH de
+// 2 HORAS usado só para renovar o access. Como o refresh é REEMITIDO (rotacionado) a cada
+// renovação, ele funciona como uma "janela deslizante de inatividade": enquanto o usuário usa o
+// sistema, o refresh é renovado; se ficar ~2h sem nenhuma requisição, o refresh expira e o próximo
+// acesso cai para a tela de login. Access curto também limita a exposição de um token vazado.
+// Ambos são JWT assinados com o mesmo JWT_SECRET; o refresh fica em cookie de path /api/auth/refresh.
+export const ACCESS_TTL_SECONDS = 60 * 15
+export const REFRESH_TTL_SECONDS = 60 * 60 * 2
 
 export function signAccessToken(u: { id: string; email: string; role: string }): string {
   return jwt.sign({ sub: u.id, email: u.email, role: u.role, type: "access" }, JWT_SECRET, { expiresIn: ACCESS_TTL_SECONDS })
