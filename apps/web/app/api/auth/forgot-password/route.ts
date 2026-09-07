@@ -17,6 +17,21 @@ function getClientIp(req: NextRequest): string {
   return req.headers.get("x-real-ip") || "unknown"
 }
 
+// Base para montar o link de redefinição no e-mail. Usa FRONTEND_URL só se ele estiver definido
+// e NÃO apontar para localhost (evita mandar link de localhost em produção quando a env var
+// ficou desatualizada). Senão, deriva da URL pública real da requisição (headers do proxy do
+// Vercel), com fallback para a origem do request.
+function resolveFrontendUrl(req: NextRequest): string {
+  const envUrl = process.env.FRONTEND_URL?.trim()
+  if (envUrl && !/localhost|127\.0\.0\.1/.test(envUrl)) {
+    return envUrl.replace(/\/$/, "")
+  }
+  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(":", "")
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host")
+  if (host) return `${proto}://${host}`.replace(/\/$/, "")
+  return req.nextUrl.origin.replace(/\/$/, "")
+}
+
 export async function POST(req: NextRequest) {
   let email: string
   try {
@@ -46,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     if (user && user.active !== false) {
       const token = await createPasswordResetToken(user.id || user._id.toString(), email, ip)
-      const frontendUrl = (process.env.FRONTEND_URL || req.nextUrl.origin).replace(/\/$/, "")
+      const frontendUrl = resolveFrontendUrl(req)
       const resetUrl = `${frontendUrl}/redefinir-senha?token=${token}`
 
       try {
