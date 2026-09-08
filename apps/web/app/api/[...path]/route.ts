@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { getDb, normalizeDoc, loginUser, getUserByToken, sanitizeUser } from "@/lib/server/server-db"
-import { requireAuth, requireRole } from "@/lib/server/server-auth"
+import { requireAuth, requireRole, requirePermission } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { courseUpdateSchema, lessonSchema, firstZodError } from "@/lib/schemas"
 import { getPasswordValidationError } from "@/lib/password-policy"
 
@@ -50,7 +51,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
   if (fullPath.startsWith("students")) {
     const id = pathParts[1]
     if (method === "GET") {
-      const auth = await requireAuth(req)
+      const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
       if (auth instanceof NextResponse) return auth
       const docs = await db.collection("students").find({}).toArray()
       return NextResponse.json({ students: docs.map(normalizeDoc) })
@@ -79,12 +80,17 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
     }
     if (method === "PUT" && id) {
       const body = await req.json()
-      await db
-        .collection("students")
-        .updateOne(
-          { id },
-          { $set: { ...body, updatedAt: new Date() } }
-        )
+      // Allowlist de campos: evita mass assignment (gravar campos arbitrários vindos do cliente).
+      const allowedFields = [
+        "nome", "cpf", "dataNascimento", "data_nascimento", "email", "telefone",
+        "telefoneResponsavel", "endereco", "curso", "escola", "nomeResponsavel",
+        "dataAcolhimento", "classId", "class_id", "classIds", "class_ids", "fotoUrl",
+      ]
+      const update: Record<string, any> = { updatedAt: new Date() }
+      for (const key of allowedFields) {
+        if (body[key] !== undefined) update[key] = body[key]
+      }
+      await db.collection("students").updateOne({ id }, { $set: update })
       return NextResponse.json({ success: true })
     }
     if (method === "DELETE" && id) {

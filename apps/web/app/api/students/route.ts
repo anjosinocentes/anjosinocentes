@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc } from "@/lib/server/server-db"
-import { requireAuth, requireRole } from "@/lib/server/server-auth"
+import { requirePermission, requireRole } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { studentSchema, firstZodError } from "@/lib/schemas"
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req)
+  // Dados sensíveis de crianças (CPF, endereço, telefone): exige a permissão "alunos",
+  // não apenas estar autenticado. ADMIN/DIRECTOR sempre passam.
+  const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
-import { requireAuth, requireRole } from "@/lib/server/server-auth"
+import { requirePermission, requireRole } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { studentAttachmentUploadSchema, firstZodError } from "@/lib/schemas"
 import { validateAttachmentFiles } from "@/lib/attachment-validation"
 import { getFileExtension, MAX_STUDENT_ATTACHMENTS, MAX_STUDENT_ATTACHMENT_FILE_BYTES } from "@/lib/attachment-utils"
@@ -22,7 +23,8 @@ function toAttachmentView(doc: any) {
 }
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth(req)
+  // Anexos de crianças podem conter documentos pessoais: exige a permissão "alunos".
+  const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params
