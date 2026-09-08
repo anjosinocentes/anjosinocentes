@@ -17,18 +17,27 @@ function getClientIp(req: NextRequest): string {
   return req.headers.get("x-real-ip") || "unknown"
 }
 
-// Base para montar o link de redefinição no e-mail. Usa FRONTEND_URL só se ele estiver definido
-// e NÃO apontar para localhost (evita mandar link de localhost em produção quando a env var
-// ficou desatualizada). Senão, deriva da URL pública real da requisição (headers do proxy do
-// Vercel), com fallback para a origem do request.
+// Base para montar o link de redefinição no e-mail.
+//
+// SEGURANÇA: o link carrega o token de redefinição, então a base NUNCA pode ser derivada de
+// headers controláveis pelo cliente (Host / X-Forwarded-Host). Se fosse, um atacante enviaria
+// um forgot-password com `Host: site-malicioso.com` e a vítima receberia um link apontando para
+// o domínio do atacante — que capturaria o token e assumiria a conta (account takeover).
+//
+// Por isso: FRONTEND_URL é a ÚNICA fonte confiável. Em produção ela é obrigatória; se estiver
+// ausente/inválida, abortamos (o chamador registra o erro e responde a mensagem genérica, sem
+// enviar e-mail). Fora de produção (dev), caímos para a origem local apenas por conveniência.
 function resolveFrontendUrl(req: NextRequest): string {
   const envUrl = process.env.FRONTEND_URL?.trim()
   if (envUrl && !/localhost|127\.0\.0\.1/.test(envUrl)) {
     return envUrl.replace(/\/$/, "")
   }
-  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(":", "")
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host")
-  if (host) return `${proto}://${host}`.replace(/\/$/, "")
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "FRONTEND_URL não configurada em produção: recusando montar link de redefinição a partir do header Host (risco de account takeover)."
+    )
+  }
+  // Desenvolvimento local: origem do próprio request (localhost). Não usar headers de proxy.
   return req.nextUrl.origin.replace(/\/$/, "")
 }
 
