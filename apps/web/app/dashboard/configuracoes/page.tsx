@@ -400,11 +400,11 @@ export default function ConfiguracoesPage() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Versão</span>
-                <span>1.0.0</span>
+                <span>5.3.0</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Última Atualização</span>
-                <span>23/03/2026</span>
+                <span>07/09/2026</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Desenvolvido por</span>
