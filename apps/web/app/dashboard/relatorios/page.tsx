@@ -368,6 +368,7 @@ export default function RelatoriosPage() {
                   <XAxis dataKey="mes" className="text-xs" />
                   <YAxis className="text-xs" />
                   <Tooltip
+                    cursor={false}
                     contentStyle={{
                       backgroundColor: 'var(--popover)',
                       border: '1px solid var(--border)',
