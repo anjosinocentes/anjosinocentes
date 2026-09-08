@@ -82,8 +82,9 @@ projeto-anjos/
 │       │   └── types.ts        # Tipos compartilhados
 │       ├── hooks/              # Hooks React reutilizáveis
 │       └── styles/             # Estilos globais
-├── supabase-schema.sql         # Schema do banco (rodar 1x no Supabase)
-├── supabase-rls.sql            # Políticas de RLS/segurança (rodar após o schema)
+├── db/                         # Scripts SQL do banco (Supabase)
+│   ├── supabase-schema.sql     # Schema do banco (rodar 1x no Supabase)
+│   └── supabase-rls.sql        # Políticas de RLS/segurança (rodar após o schema)
 ├── iniciar.bat                 # Atalho para instalar dependências e subir o app (Windows)
 ├── package.json                # Configuração do monorepo
 └── README.md
@@ -110,8 +111,8 @@ projeto-anjos/
 
 2. **Crie o banco e aplique o schema**
    - Crie um projeto no Supabase.
-   - No **SQL Editor**, cole e rode `supabase-schema.sql` (cria as tabelas e o administrador padrão).
-   - Em seguida, rode `supabase-rls.sql` para habilitar a segurança em nível de linha (RLS).
+   - No **SQL Editor**, cole e rode `db/supabase-schema.sql` (cria as tabelas e o administrador padrão).
+   - Em seguida, rode `db/supabase-rls.sql` para habilitar a segurança em nível de linha (RLS).
 
 3. **Configuração de Variáveis de Ambiente**
    - No diretório `apps/web`, crie/edite o arquivo `.env`:
