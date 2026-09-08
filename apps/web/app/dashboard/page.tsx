@@ -276,7 +276,7 @@ export default function DashboardPage() {
                     className="text-xs"
                     unit="%"
                   />
-                  <Tooltip content={<ChartTooltipContent />} />
+                  <Tooltip cursor={false} content={<ChartTooltipContent />} />
                   <Legend />
                   <Bar
                     dataKey="presentes"
