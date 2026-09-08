@@ -140,7 +140,10 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
     if (method === "GET") {
       const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
       if (auth instanceof NextResponse) return auth
-      const docs = await db.collection("users").find({ role: { $ne: "STUDENT" } }).toArray()
+      const docs = await db
+        .collection("users")
+        .find({ role: { $ne: "STUDENT" }, id: { $ne: "admin-default-id" } })
+        .toArray()
       return NextResponse.json({ teachers: docs.map(normalizeDoc) })
     }
     const auth = await requireRole(req, "DIRECTOR")

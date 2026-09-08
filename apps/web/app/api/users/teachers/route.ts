@@ -16,12 +16,19 @@ function withRolePermissions(u: any) {
   return u
 }
 
+// Conta de administrador de sistema criada pelo seed (db/supabase-schema.sql). É o super-usuário
+// e não deve aparecer na tela de Equipe (não é um "colaborador" a ser gerenciado ali).
+const SYSTEM_ADMIN_ID = "admin-default-id"
+
 export async function GET(req: NextRequest) {
   const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
-    const docs = await db.collection("users").find({ role: { $ne: "STUDENT" } }).toArray()
+    const docs = await db
+      .collection("users")
+      .find({ role: { $ne: "STUDENT" }, id: { $ne: SYSTEM_ADMIN_ID } })
+      .toArray()
     const teachers = docs.map(normalizeDoc).map(sanitizeUser).map(withRolePermissions)
     return NextResponse.json({ teachers })
   } catch (err: any) {
