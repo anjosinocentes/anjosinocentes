@@ -369,10 +369,13 @@ export default function RelatoriosPage() {
                   <YAxis className="text-xs" />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'var(--popover)',
+                      border: '1px solid var(--border)',
                       borderRadius: '8px',
+                      color: 'var(--popover-foreground)',
                     }}
+                    labelStyle={{ color: 'var(--popover-foreground)' }}
+                    itemStyle={{ color: 'var(--popover-foreground)' }}
                   />
                   <Bar dataKey="presentes" name="Presentes" fill="#F97316" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="ausentes" name="Ausentes" fill="#E5E7EB" radius={[4, 4, 0, 0]} />
@@ -408,10 +411,13 @@ export default function RelatoriosPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'var(--popover)',
+                      border: '1px solid var(--border)',
                       borderRadius: '8px',
+                      color: 'var(--popover-foreground)',
                     }}
+                    labelStyle={{ color: 'var(--popover-foreground)' }}
+                    itemStyle={{ color: 'var(--popover-foreground)' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -456,10 +462,13 @@ export default function RelatoriosPage() {
                   <YAxis className="text-xs" />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'var(--popover)',
+                      border: '1px solid var(--border)',
                       borderRadius: '8px',
+                      color: 'var(--popover-foreground)',
                     }}
+                    labelStyle={{ color: 'var(--popover-foreground)' }}
+                    itemStyle={{ color: 'var(--popover-foreground)' }}
                   />
                   <Line
                     type="monotone"
