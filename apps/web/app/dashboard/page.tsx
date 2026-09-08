@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, BookOpen, TrendingUp, AlertTriangle, LayoutDashboard, Cake, CalendarClock } from "lucide-react"
+import { Users, UserCheck, BookOpen, TrendingUp, AlertTriangle, LayoutDashboard, Cake, CalendarClock, Loader2 } from "lucide-react"
 import { getStudentsStats, getReportsStats, getStudents, getEvents, type StudentStats } from "@/lib/api"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
@@ -248,12 +248,22 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {chartReady ? (
+            {!chartReady || !reportsData ? (
+              // Enquanto carrega: spinner do mesmo tamanho do gráfico (evita o "pulo" de layout
+              // e o bloco vermelho de 100% ausentes que aparecia com dados ainda vazios).
+              <div className="h-[300px] w-full flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : !(reportsData?.presencaMensal?.length) ? (
+              <div className="h-[300px] w-full flex items-center justify-center text-center px-4">
+                <p className="text-sm text-muted-foreground">
+                  Ainda não há registros de presença para exibir a frequência mensal.
+                </p>
+              </div>
+            ) : (
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={(reportsData?.presencaMensal?.slice(-6) || [
-                  { mes: "Hoje", presentes: totalPresentes ? Math.round((totalPresentes / totalAlunos) * 100) : 0, ausentes: totalPresentes ? 100 - Math.round((totalPresentes / totalAlunos) * 100) : 100 }
-                ]).map((m: any) => (m.semRegistro ? { ...m, presentes: null, ausentes: null } : m))}>
+                <BarChart data={reportsData.presencaMensal.slice(-6).map((m: any) => (m.semRegistro ? { ...m, presentes: null, ausentes: null } : m))}>
                   <XAxis 
                     dataKey="mes" 
                     tickLine={false}
@@ -285,8 +295,6 @@ export default function DashboardPage() {
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
-            ) : (
-              <div className="h-[300px] w-full" />
             )}
           </CardContent>
         </Card>
