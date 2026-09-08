@@ -2,6 +2,25 @@
 
 Sistema de gestão escolar desenvolvido para facilitar a administração de instituições de ensino. É uma aplicação **Next.js fullstack**: o mesmo app serve o frontend (interface moderna com Radix UI e Tailwind CSS) e as rotas de API (`app/api/**`), que persistem os dados em **PostgreSQL (Supabase)**.
 
+---
+
+## 🗺️ Mapa do projeto — onde fica cada coisa
+
+Todo o código está em **`apps/web/`**. No Next.js, **a pasta é o endereço**: o caminho da pasta vira a URL. Use este guia para achar o que precisa:
+
+| Quero mexer em... | Vá para... |
+|---|---|
+| **Uma tela/página** que o usuário vê (crianças, equipe, relatórios…) | `apps/web/app/dashboard/<nome-da-página>/page.tsx` |
+| **Uma API / regra de dados** (salvar, buscar, editar) | `apps/web/app/api/<recurso>/route.ts` |
+| **Login, esqueci senha, redefinir senha** | `apps/web/app/api/auth/` |
+| **Um componente visual** (botão, tabela, diálogo, card) | `apps/web/components/` (genéricos em `components/ui/`) |
+| **Regras/lógica compartilhada** (permissões, validações, tipos) | `apps/web/lib/` |
+| **Código que só roda no servidor** (banco, segredos, e-mail, JWT) | `apps/web/lib/server/` — **nunca** importar em componentes `"use client"` |
+| **Scripts do banco de dados** (schema, RLS) | `db/` |
+| **Segredos e credenciais** (só local, não vai pro Git) | `CREDENCIAIS.md` |
+
+**Regra mental rápida:** é uma **tela**? → `app/dashboard/`. É **dados/back-end**? → `app/api/`. As muitas subpastas dentro dessas duas são apenas os endereços de cada tela e de cada API — cada uma tem um lugar fixo.
+
 ## Funcionalidades
 
 ### Autenticação, Cargos e Permissões
