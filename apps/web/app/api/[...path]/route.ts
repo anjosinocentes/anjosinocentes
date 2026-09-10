@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { getDb, normalizeDoc, loginUser, getUserByToken, sanitizeUser } from "@/lib/server/server-db"
-import { requireAuth, requireRole, requirePermission } from "@/lib/server/server-auth"
+import { requireAuth, requirePermission } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { courseUpdateSchema, lessonSchema, firstZodError } from "@/lib/schemas"
 import { getPasswordValidationError } from "@/lib/password-policy"
@@ -56,7 +56,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       const docs = await db.collection("students").find({}).toArray()
       return NextResponse.json({ students: docs.map(normalizeDoc) })
     }
-    const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY")
+    const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
     if (auth instanceof NextResponse) return auth
     if (method === "POST") {
       const body = await req.json()
@@ -110,7 +110,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       const docs = await db.collection("classes").find({}).toArray()
       return NextResponse.json({ classes: docs.map(normalizeDoc) })
     }
-    const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
+    const auth = await requirePermission(req, PERMISSIONS.TURMAS)
     if (auth instanceof NextResponse) return auth
     if (method === "POST") {
       const body = await req.json()
@@ -138,7 +138,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
   if (fullPath.startsWith("users/teachers")) {
     const id = pathParts[2]
     if (method === "GET") {
-      const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
+      const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
       if (auth instanceof NextResponse) return auth
       const docs = await db
         .collection("users")
@@ -146,7 +146,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
         .toArray()
       return NextResponse.json({ teachers: docs.map(normalizeDoc) })
     }
-    const auth = await requireRole(req, "DIRECTOR")
+    const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
     if (auth instanceof NextResponse) return auth
     if (method === "POST") {
       const body = await req.json()
@@ -221,7 +221,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       return NextResponse.json({ lessons: docs.map(normalizeDoc) })
     }
     if (method === "POST") {
-      const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "TEACHER")
+      const auth = await requirePermission(req, PERMISSIONS.PLANO_AULA)
       if (auth instanceof NextResponse) return auth
       const raw = await req.json()
       const parsed = lessonSchema.safeParse(raw)
@@ -246,7 +246,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       const docs = await db.collection("courses").find({}).toArray()
       return NextResponse.json({ courses: docs.map(normalizeDoc) })
     }
-    const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
+    const auth = await requirePermission(req, PERMISSIONS.OFICINAS)
     if (auth instanceof NextResponse) return auth
     if (method === "POST") {
       const body = await req.json()
@@ -284,7 +284,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       return NextResponse.json({ events: docs.map(normalizeDoc) })
     }
     if (method === "POST") {
-      const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY", "TEACHER")
+      const auth = await requirePermission(req, PERMISSIONS.CALENDARIO)
       if (auth instanceof NextResponse) return auth
       const body = await req.json()
       const newId = crypto.randomUUID()

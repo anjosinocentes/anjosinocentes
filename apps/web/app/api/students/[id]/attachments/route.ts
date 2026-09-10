@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
-import { requirePermission, requireRole } from "@/lib/server/server-auth"
+import { requirePermission } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { studentAttachmentUploadSchema, firstZodError } from "@/lib/schemas"
 import { validateAttachmentFiles } from "@/lib/attachment-validation"
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 }
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY")
+  const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params

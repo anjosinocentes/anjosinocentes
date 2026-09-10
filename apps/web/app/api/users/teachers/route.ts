@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc, sanitizeUser, logAudit } from "@/lib/server/server-db"
 import bcrypt from "bcryptjs"
-import { requireRole, canAssignRole } from "@/lib/server/server-auth"
+import { requirePermission, canAssignRole } from "@/lib/server/server-auth"
 import { teacherSchema, firstZodError } from "@/lib/schemas"
-import { defaultPermissionsForRole } from "@/lib/permissions"
+import { PERMISSIONS, defaultPermissionsForRole } from "@/lib/permissions"
 import { getPasswordValidationError } from "@/lib/password-policy"
 import type { UserRole } from "@/lib/auth"
 
@@ -21,7 +21,7 @@ function withRolePermissions(u: any) {
 const SYSTEM_ADMIN_ID = "admin-default-id"
 
 export async function GET(req: NextRequest) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
+  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
+  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
   if (auth instanceof NextResponse) return auth
   try {
     const raw = await req.json()

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
-import { requireRole } from "@/lib/server/server-auth"
+import { requirePermission } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { getPdiArea } from "@/lib/pdi-constants"
 
 // Excluir um registro de evolução é mais sensível que os outros CRUDs do PDI - o histórico
 // é o próprio propósito da funcionalidade, então só DIRECTOR (e ADMIN, que o requireRole
 // sempre libera) pode corrigir um lançamento equivocado, não qualquer um com a permissão "pdis".
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string; evolutionId: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR")
+  const auth = await requirePermission(req, PERMISSIONS.PDIS)
   if (auth instanceof NextResponse) return auth
   try {
     const { id, evolutionId } = await props.params

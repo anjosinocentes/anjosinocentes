@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc } from "@/lib/server/server-db"
-import { requireAuth, requireRole, forbidden } from "@/lib/server/server-auth"
+import { requirePermission, requireAuth, forbidden } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { attendanceBulkSchema, firstZodError } from "@/lib/schemas"
 
 // Turmas que o professor leciona (professorId = id do usuário) - usado para restringir tanto a
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY", "TEACHER")
+  const auth = await requirePermission(req, PERMISSIONS.PRESENCA)
   if (auth instanceof NextResponse) return auth
   try {
     const raw = await req.json()

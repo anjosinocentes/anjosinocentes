@@ -42,6 +42,7 @@ import {
 } from 'recharts'
 import { useAuth } from "@/components/auth/auth-provider"
 import { AccessDenied } from "@/components/auth/access-denied"
+import { hasPermission, PERMISSIONS } from "@/lib/permissions"
 import { Spinner } from "@/components/ui/spinner"
 import { API_URL } from "@/lib/auth"
 import { RelatorioPresencaAluno } from "@/components/reports/relatorio-presenca-aluno"
@@ -179,7 +180,7 @@ export default function RelatoriosPage() {
     return null
   }
 
-  if (user.role !== "ADMIN" && user.role !== "DIRECTOR") {
+  if (!hasPermission(user, PERMISSIONS.RELATORIOS)) {
     return <AccessDenied />
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc, getActorFromRequest } from "@/lib/server/server-db"
-import { requireAuth, requireRole } from "@/lib/server/server-auth"
+import { requirePermission, requireAuth } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { validateAttachmentsServerSide } from "@/lib/attachment-validation"
 import { announcementSchema, firstZodError } from "@/lib/schemas"
 
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY")
+  const auth = await requirePermission(req, PERMISSIONS.COMUNICACAO)
   if (auth instanceof NextResponse) return auth
   try {
     const actor = await getActorFromRequest(req)

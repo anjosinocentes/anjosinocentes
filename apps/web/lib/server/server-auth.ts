@@ -79,16 +79,14 @@ export function hasRole(user: AuthedUser, ...roles: UserRole[]) {
   return user.role === "ADMIN" || roles.includes(user.role)
 }
 
-// Regras de quem pode ATRIBUIR cada cargo (criar/promover). Nunca confiar no cargo vindo do
-// cliente: a decisão é sempre validada no servidor a partir do papel do usuário autenticado.
-//  - ADMIN: só ADMIN pode criar/atribuir.
-//  - DIRECTOR: só ADMIN ou DIRECTOR.
-//  - COORDINATOR/SECRETARY/TEACHER/STUDENT: ADMIN, DIRECTOR ou COORDINATOR.
-// (TEACHER e SECRETARY nem alcançam os endpoints de gestão de usuários - barrados antes por requireRole.)
+// Regras de quem pode ATRIBUIR cada cargo ao criar/editar um colaborador. Quem chega até aqui já
+// tem a permissão EQUIPE (checada por requirePermission na rota). A única trava que resta é
+// ANTI-ESCALAÇÃO: apenas o super-usuário ADMIN pode criar/atribuir o cargo ADMIN - assim ninguém
+// com a caixinha "equipe" consegue se promover (ou promover outro) a administrador do sistema.
+// Os demais cargos são apenas rótulos, então qualquer um com EQUIPE pode atribuí-los.
 export function canAssignRole(actorRole: UserRole, targetRole: UserRole): boolean {
   if (targetRole === "ADMIN") return actorRole === "ADMIN"
-  if (targetRole === "DIRECTOR") return actorRole === "ADMIN" || actorRole === "DIRECTOR"
-  return actorRole === "ADMIN" || actorRole === "DIRECTOR" || actorRole === "COORDINATOR"
+  return true
 }
 
 // Combina requireAuth + checagem de papel. Retorna o usuário ou uma NextResponse de erro pronta pra devolver.
@@ -104,7 +102,9 @@ export async function requireRole(req: Request, ...roles: UserRole[]): Promise<A
 // (aqui é opcional), então reusar a função do cliente exigiria um cast. ADMIN/DIRECTOR sempre
 // passam, igual ao restante do sistema.
 function hasPermissionServer(user: AuthedUser, permission: Permission) {
-  return user.role === "ADMIN" || user.role === "DIRECTOR" || !!user.permissions?.includes(permission)
+  // Espelha lib/permissions.ts (hasPermission): só o super-usuário ADMIN tem bypass; todos os
+  // demais cargos são rótulos e dependem exclusivamente das caixinhas (`permissions`).
+  return user.role === "ADMIN" || !!user.permissions?.includes(permission)
 }
 
 // Combina requireAuth + checagem de permissão (em vez de papel). Use para recursos liberados

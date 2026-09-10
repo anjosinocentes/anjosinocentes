@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/auth-provider"
 import { AccessDenied } from "@/components/auth/access-denied"
+import { hasPermission, PERMISSIONS } from "@/lib/permissions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,7 +48,7 @@ export default function CursosPage() {
   })
 
   useEffect(() => {
-    if (!user || (user.role !== "ADMIN" && user.role !== "DIRECTOR") ) return
+    if (!hasPermission(user, PERMISSIONS.OFICINAS)) return
 
     const loadData = async () => {
       setLoading(true)
@@ -75,7 +76,7 @@ export default function CursosPage() {
     )
   }
 
-  if (!user || (user.role !== "ADMIN" && user.role !== "DIRECTOR")) {
+  if (!hasPermission(user, PERMISSIONS.OFICINAS)) {
     return <AccessDenied />
   }
 

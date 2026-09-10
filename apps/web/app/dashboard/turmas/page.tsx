@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { RequirePermission } from "@/components/auth/require-permission"
 import { useAuth } from "@/components/auth/auth-provider"
-import { PERMISSIONS } from "@/lib/permissions"
+import { PERMISSIONS, hasPermission } from "@/lib/permissions"
 import { 
   GraduationCap, 
   Plus, 
@@ -59,7 +59,7 @@ const normalizeText = (str: string) =>
 
 export default function TurmasPage() {
   const { user } = useAuth()
-  const canManage = user?.role === "ADMIN" || user?.role === "DIRECTOR" || user?.role === "COORDINATOR"
+  const canManage = hasPermission(user, PERMISSIONS.TURMAS)
 
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [allStudents, setAllStudents] = useState<Aluno[]>([])
@@ -98,7 +98,7 @@ export default function TurmasPage() {
 
     const loadData = async () => {
       try {
-        const canManageVal = user.role === "ADMIN" || user.role === "DIRECTOR" || user.role === "COORDINATOR"
+        const canManageVal = hasPermission(user, PERMISSIONS.TURMAS)
         const [classes, students, fetchedCourses, fetchedTeachers] = await Promise.all([
           getClasses().catch(() => []),
           getStudents().catch(() => []),

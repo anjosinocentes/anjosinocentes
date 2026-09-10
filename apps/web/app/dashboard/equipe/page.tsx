@@ -60,7 +60,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { AccessDenied } from "@/components/auth/access-denied"
 import { Spinner } from "@/components/ui/spinner"
 import { API_URL, type UserRole } from "@/lib/auth"
-import { PERMISSIONS, type Permission } from "@/lib/permissions"
+import { PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions"
 import { updateTeacher, deleteTeacher, resetPassword, getAuditLogs, getClasses, getStudents, type AuditLog } from "@/lib/api"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
@@ -94,48 +94,13 @@ const permissionOptions: Array<{ value: Permission; label: string; description: 
   { value: PERMISSIONS.PLANO_AULA, label: "Aulas", description: "Registrar as aulas dadas" },
   { value: PERMISSIONS.CALENDARIO, label: "Calendário", description: "Gerenciar eventos e aulas" },
   { value: PERMISSIONS.COMUNICACAO, label: "Comunicação", description: "Visualizar avisos" },
+  { value: PERMISSIONS.OFICINAS, label: "Oficinas", description: "Criar e editar oficinas" },
+  { value: PERMISSIONS.RELATORIOS, label: "Relatórios", description: "Ver relatórios e estatísticas" },
+  { value: PERMISSIONS.EQUIPE, label: "Equipe", description: "Gerenciar colaboradores e suas permissões" },
 ]
 
-const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  TEACHER: [
-    PERMISSIONS.PRESENCA,
-    PERMISSIONS.PLANO_AULA,
-    PERMISSIONS.CALENDARIO,
-    PERMISSIONS.COMUNICACAO,
-  ],
-  COORDINATOR: [
-    PERMISSIONS.ALUNOS,
-    PERMISSIONS.TURMAS,
-    PERMISSIONS.PRESENCA,
-    PERMISSIONS.PLANO_AULA,
-    PERMISSIONS.CALENDARIO,
-    PERMISSIONS.COMUNICACAO,
-  ],
-  SECRETARY: [
-    PERMISSIONS.ALUNOS,
-    PERMISSIONS.TURMAS,
-    PERMISSIONS.PRESENCA,
-    PERMISSIONS.CALENDARIO,
-    PERMISSIONS.COMUNICACAO,
-  ],
-  ADMIN: [
-    PERMISSIONS.ALUNOS,
-    PERMISSIONS.TURMAS,
-    PERMISSIONS.PRESENCA,
-    PERMISSIONS.PLANO_AULA,
-    PERMISSIONS.CALENDARIO,
-    PERMISSIONS.COMUNICACAO,
-  ],
-  DIRECTOR: [
-    PERMISSIONS.ALUNOS,
-    PERMISSIONS.TURMAS,
-    PERMISSIONS.PRESENCA,
-    PERMISSIONS.PLANO_AULA,
-    PERMISSIONS.CALENDARIO,
-    PERMISSIONS.COMUNICACAO,
-  ],
-  STUDENT: [],
-}
+// O preset de permissões por cargo vem de lib/permissions.ts (fonte única, usada também no
+// servidor). Ao escolher o cargo, estas caixinhas já vêm marcadas - mas tudo é editável.
 
 type Teacher = {
   id: string
@@ -175,8 +140,12 @@ const renderRoleBadge = (role?: string) => {
 
 export default function ProfessoresPage() {
   const { user, loading } = useAuth()
-  const isAdminOrDirector = user?.role === "ADMIN" || user?.role === "DIRECTOR"
-  const canAccess = user?.role === "ADMIN" || user?.role === "DIRECTOR" || user?.role === "COORDINATOR"
+  // Acesso à gestão de Equipe agora é 100% pela caixinha "equipe" (cargo é só rótulo). Quem tem a
+  // permissão gerencia colaboradores - inclusive um Professor, se você liberar essa caixinha p/ ele.
+  const canAccess = hasPermission(user, PERMISSIONS.EQUIPE)
+  // Quem gerencia a Equipe pode atribuir qualquer cargo/rótulo e editar qualquer colaborador. A
+  // única trava (no servidor) é: só o ADMIN do sistema cria/atribui ADMIN (anti-escalação).
+  const isAdminOrDirector = canAccess
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -708,7 +677,7 @@ export default function ProfessoresPage() {
             <Layers className="h-4 w-4" />
             Atribuições
           </TabsTrigger>
-          {(user.role === "DIRECTOR" || user.role === "ADMIN") && (
+          {isAdminOrDirector && (
             <TabsTrigger value="auditoria" className="flex items-center gap-2 py-2">
               <History className="h-4 w-4" />
               Auditoria
@@ -1091,7 +1060,7 @@ export default function ProfessoresPage() {
           </div>
         </TabsContent>
 
-        {(user.role === "DIRECTOR" || user.role === "ADMIN") && (
+        {isAdminOrDirector && (
           <TabsContent value="auditoria" className="space-y-6 outline-none">
             <Card className="border-border/50">
               <CardHeader>

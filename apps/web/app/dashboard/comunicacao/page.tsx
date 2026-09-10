@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { RequirePermission } from "@/components/auth/require-permission"
-import { PERMISSIONS } from "@/lib/permissions"
+import { PERMISSIONS, hasPermission } from "@/lib/permissions"
 import { useAuth } from "@/components/auth/auth-provider"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -104,7 +104,7 @@ export default function ComunicacaoPage() {
     attachments: []
   })
 
-  const isDirector = user?.role === "ADMIN" || user?.role === "DIRECTOR" || user?.role === "COORDINATOR" || user?.role === "SECRETARY"
+  const isDirector = hasPermission(user, PERMISSIONS.COMUNICACAO)
 
   const loadAnnouncements = async () => {
     try {

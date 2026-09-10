@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc, sanitizeUser, logAudit } from "@/lib/server/server-db"
-import { requireRole, canAssignRole } from "@/lib/server/server-auth"
+import { requirePermission, canAssignRole } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { teacherUpdateSchema, firstZodError } from "@/lib/schemas"
 import type { UserRole } from "@/lib/auth"
 
@@ -21,7 +22,7 @@ async function countOtherActiveAdmins(db: any, excludeId: string) {
 }
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR")
+  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params
@@ -98,7 +99,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR")
+  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params

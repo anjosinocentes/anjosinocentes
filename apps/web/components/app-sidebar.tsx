@@ -57,10 +57,10 @@ const menuItems: Array<{ group: string; items: NavItem[] }> = [
     group: "Gestão",
     items: [
       { href: "/dashboard/criancas", label: "Crianças", icon: Users, permission: PERMISSIONS.ALUNOS },
-      { href: "/dashboard/oficinas", label: "Oficinas", icon: BookOpen, roles: ["ADMIN", "DIRECTOR", "COORDINATOR"] },
+      { href: "/dashboard/oficinas", label: "Oficinas", icon: BookOpen, permission: PERMISSIONS.OFICINAS },
       { href: "/dashboard/turmas", label: "Turmas", icon: GraduationCap, permission: PERMISSIONS.TURMAS },
       { href: "/dashboard/presenca", label: "Presença", icon: ClipboardCheck, permission: PERMISSIONS.PRESENCA },
-      { href: "/dashboard/equipe", label: "Equipe", icon: UserCog, roles: ["ADMIN", "DIRECTOR"] },
+      { href: "/dashboard/equipe", label: "Equipe", icon: UserCog, permission: PERMISSIONS.EQUIPE },
     ],
   },
   {
@@ -73,7 +73,7 @@ const menuItems: Array<{ group: string; items: NavItem[] }> = [
   },
   {
     group: "Relatórios",
-    items: [{ href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart3, roles: ["ADMIN", "DIRECTOR", "COORDINATOR"] }],
+    items: [{ href: "/dashboard/relatorios", label: "Relatórios", icon: BarChart3, permission: PERMISSIONS.RELATORIOS }],
   },
 ]
 

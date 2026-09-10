@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc } from "@/lib/server/server-db"
-import { requirePermission, requireRole } from "@/lib/server/server-auth"
+import { requirePermission } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { studentSchema, firstZodError } from "@/lib/schemas"
 
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY")
+  const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
   if (auth instanceof NextResponse) return auth
   try {
     const raw = await req.json()

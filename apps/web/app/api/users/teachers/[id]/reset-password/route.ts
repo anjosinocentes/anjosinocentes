@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import bcrypt from "bcryptjs"
-import { requireRole } from "@/lib/server/server-auth"
+import { requirePermission } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { getPasswordValidationError } from "@/lib/password-policy"
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR")
+  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params

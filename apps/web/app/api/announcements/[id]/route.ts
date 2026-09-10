@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
-import { requireRole } from "@/lib/server/server-auth"
+import { requirePermission } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 import { validateAttachmentsServerSide } from "@/lib/attachment-validation"
 import { announcementUpdateSchema, firstZodError } from "@/lib/schemas"
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY")
+  const auth = await requirePermission(req, PERMISSIONS.COMUNICACAO)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params
@@ -35,7 +36,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR", "COORDINATOR", "SECRETARY")
+  const auth = await requirePermission(req, PERMISSIONS.COMUNICACAO)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params

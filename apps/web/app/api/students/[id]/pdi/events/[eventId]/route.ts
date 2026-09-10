@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
-import { requireRole } from "@/lib/server/server-auth"
+import { requirePermission } from "@/lib/server/server-auth"
+import { PERMISSIONS } from "@/lib/permissions"
 
 // Mesma regra de sensibilidade de DELETE /pdi/evolutions/:evolutionId: histórico é o propósito
 // do PDI, então só DIRECTOR (e ADMIN) corrige um marco lançado por engano.
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string; eventId: string }> }) {
-  const auth = await requireRole(req, "DIRECTOR")
+  const auth = await requirePermission(req, PERMISSIONS.PDIS)
   if (auth instanceof NextResponse) return auth
   try {
     const { id, eventId } = await props.params

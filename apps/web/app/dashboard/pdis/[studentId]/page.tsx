@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { RequirePermission } from "@/components/auth/require-permission"
-import { PERMISSIONS } from "@/lib/permissions"
+import { PERMISSIONS, hasPermission } from "@/lib/permissions"
 import { useAuth } from "@/components/auth/auth-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -196,9 +196,9 @@ export default function StudentPdiPage() {
   const [confirmDeletePdiOpen, setConfirmDeletePdiOpen] = useState(false)
   const [deletingPdi, setDeletingPdi] = useState(false)
 
-  const canDeleteEvolution = user?.role === "ADMIN" || user?.role === "DIRECTOR"
+  const canDeleteEvolution = hasPermission(user, PERMISSIONS.PDIS)
   // Excluir o PDI inteiro é destrutivo: mesma restrição do backend (ADMIN/Diretor).
-  const canDeletePdi = user?.role === "ADMIN" || user?.role === "DIRECTOR"
+  const canDeletePdi = hasPermission(user, PERMISSIONS.PDIS)
 
   const loadAll = async () => {
     try {
