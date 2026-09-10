@@ -550,7 +550,7 @@ export default function StudentPdiPage() {
           <>
             {/* Histórico inicial */}
             <Card className="border-border/50">
-              <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
+              <CardHeader className="pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">📋 Histórico inicial</CardTitle>
                   <CardDescription className="text-xs">Contexto que deu origem ao acompanhamento</CardDescription>
@@ -622,7 +622,7 @@ export default function StudentPdiPage() {
 
             {/* Acompanhamentos */}
             <Card className="border-border/50">
-              <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
+              <CardHeader className="pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">🎯 Acompanhamentos</CardTitle>
                   <CardDescription className="text-xs">Objetivos por área acompanhados pela equipe</CardDescription>
@@ -658,7 +658,7 @@ export default function StudentPdiPage() {
 
             {/* Linha do tempo geral: evoluções + marcos institucionais + entrada na instituição */}
             <Card className="border-border/50">
-              <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
+              <CardHeader className="pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">🗺️ Linha do tempo geral</CardTitle>
                   <CardDescription className="text-xs">Acontecimentos importantes de todas as áreas</CardDescription>
