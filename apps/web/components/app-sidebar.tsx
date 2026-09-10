@@ -200,7 +200,15 @@ export function AppSidebar() {
             displayCollapsed ? "justify-center p-3" : "justify-between p-4",
           )}
         >
-          <div className={cn("flex items-center gap-3 overflow-hidden", displayCollapsed && "justify-center")}>
+          <Link
+            href="/dashboard"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Ir para o início (Dashboard)"
+            className={cn(
+              "flex items-center gap-3 overflow-hidden rounded-lg transition-opacity hover:opacity-80",
+              displayCollapsed && "justify-center",
+            )}
+          >
             <Image
               src="/logo.png"
               alt="Projeto Anjos Inocentes"
@@ -217,7 +225,7 @@ export function AppSidebar() {
                 <span className="text-xs text-muted-foreground truncate">Sistema de Gestão</span>
               </div>
             )}
-          </div>
+          </Link>
 
           {/* Fechar - só no mobile (à direita, sem cobrir o logo) */}
           <Button
