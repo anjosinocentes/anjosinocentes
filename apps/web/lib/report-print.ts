@@ -134,15 +134,16 @@ export type ReportBlock =
 // Gera e BAIXA um PDF de verdade no cliente (texto selecionável), sem depender da "impressora
 // PDF" do sistema. Reproduz o mesmo cabeçalho (logo + Projeto Anjos Inocentes), subtítulo e
 // rodapé do openReportWindow, para os dois caminhos (baixar vs imprimir) ficarem visualmente iguais.
-export async function downloadReportPdf({
-  filename,
+// Monta o documento jsPDF (cabeçalho + blocos + rodapé) e devolve o `doc`, sem baixar nem
+// compartilhar - para os chamadores decidirem o destino (download no desktop, compartilhamento
+// nativo no celular). Ver downloadReportPdf e shareOrSaveReportPdf.
+export async function buildReportPdf({
   subtitle,
   blocks,
 }: {
-  filename: string
   subtitle: string
   blocks: ReportBlock[]
-}) {
+}): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "mm", format: "a4" })
   const pageWidth = doc.internal.pageSize.getWidth()
   const marginX = 14
@@ -176,8 +177,20 @@ export async function downloadReportPdf({
 
   let cursorY = headerBottom + 8
 
+  // Quebra de página para os blocos de texto/título (as tabelas já paginam sozinhas via autoTable).
+  // Sem isso, um PDI longo (muitas evoluções) escreveria por cima do rodapé / fora da página.
+  const pageBottomLimit = doc.internal.pageSize.getHeight() - 22
+  const newPageTop = 20
+  const ensureSpace = (needed: number) => {
+    if (cursorY + needed > pageBottomLimit) {
+      doc.addPage()
+      cursorY = newPageTop
+    }
+  }
+
   for (const block of blocks) {
     if (block.type === "heading") {
+      ensureSpace(12)
       doc.setTextColor(51, 51, 51)
       doc.setFontSize(13)
       doc.setFont("helvetica", "bold")
@@ -187,9 +200,14 @@ export async function downloadReportPdf({
       doc.setTextColor(51, 51, 51)
       doc.setFontSize(11)
       doc.setFont("helvetica", "normal")
-      const lines = doc.splitTextToSize(block.text, contentWidth)
-      doc.text(lines, marginX, cursorY + 4)
-      cursorY += 4 + lines.length * 5
+      const lines: string[] = doc.splitTextToSize(block.text, contentWidth)
+      // Escreve linha a linha, paginando quando chega ao fim da página.
+      cursorY += 4
+      for (const line of lines) {
+        ensureSpace(5)
+        doc.text(line, marginX, cursorY)
+        cursorY += 5
+      }
     } else if (block.type === "keyValue") {
       autoTable(doc, {
         startY: cursorY + 2,
@@ -231,6 +249,65 @@ export async function downloadReportPdf({
     doc.text("Sistema de Gestão Acadêmica - Anjos Inocentes", pageWidth / 2, pageHeight - 10, { align: "center" })
   }
 
+  return doc
+}
+
+// Normaliza o nome do arquivo (remove caracteres inválidos, garante extensão .pdf).
+function toPdfFilename(filename: string): string {
   const safeName = filename.replace(/[\\/:*?"<>|]+/g, "_")
-  doc.save(safeName.toLowerCase().endsWith(".pdf") ? safeName : `${safeName}.pdf`)
+  return safeName.toLowerCase().endsWith(".pdf") ? safeName : `${safeName}.pdf`
+}
+
+// Gera e BAIXA um PDF de verdade no cliente (texto selecionável), sem depender da "impressora
+// PDF" do sistema.
+export async function downloadReportPdf({
+  filename,
+  subtitle,
+  blocks,
+}: {
+  filename: string
+  subtitle: string
+  blocks: ReportBlock[]
+}) {
+  const doc = await buildReportPdf({ subtitle, blocks })
+  doc.save(toPdfFilename(filename))
+}
+
+// Gera o PDF e, no celular (iOS/Android), abre a FOLHA DE COMPARTILHAMENTO NATIVA do sistema
+// (Compartilhar / Salvar em Arquivos), em vez de abrir uma aba nova que o usuário não sabe
+// fechar. No desktop (ou onde o compartilhamento de arquivos não é suportado), baixa o PDF.
+// Retorna a "via" usada, útil para o chamador dar um feedback adequado.
+export async function shareOrSaveReportPdf({
+  filename,
+  subtitle,
+  blocks,
+  shareTitle,
+}: {
+  filename: string
+  subtitle: string
+  blocks: ReportBlock[]
+  shareTitle?: string
+}): Promise<"shared" | "downloaded" | "cancelled"> {
+  const doc = await buildReportPdf({ subtitle, blocks })
+  const name = toPdfFilename(filename)
+  const blob = doc.output("blob")
+
+  const nav = typeof navigator !== "undefined" ? (navigator as any) : undefined
+  const file = typeof File !== "undefined" ? new File([blob], name, { type: "application/pdf" }) : null
+
+  // Só tenta o compartilhamento nativo quando o dispositivo realmente suporta compartilhar
+  // ARQUIVOS (canShare com files) - assim o desktop continua baixando normalmente.
+  if (file && nav?.canShare && nav.canShare({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: shareTitle || name })
+      return "shared"
+    } catch (err: any) {
+      // Usuário fechou a folha de compartilhamento: não é erro, não força download.
+      if (err?.name === "AbortError") return "cancelled"
+      // Qualquer outra falha (ex.: perda do gesto do usuário): cai para o download abaixo.
+    }
+  }
+
+  doc.save(name)
+  return "downloaded"
 }

@@ -53,7 +53,7 @@ import { EditPdiInitialDialog } from "@/components/pdi/edit-pdi-initial-dialog"
 import { AddPdiEventDialog } from "@/components/pdi/add-pdi-event-dialog"
 import { PdiGeneralTimeline, type GeneralTimelineItem } from "@/components/pdi/pdi-general-timeline"
 import type { Aluno, Turma, PdiTracking, PdiEvolution, PdiEvent } from "@/lib/types"
-import { openReportWindow, escapeHtml } from "@/lib/report-print"
+import { shareOrSaveReportPdf, type ReportBlock } from "@/lib/report-print"
 import { toast } from "sonner"
 
 function AddTrackingDialog({
@@ -289,79 +289,91 @@ export default function StudentPdiPage() {
     })
   }, [detail])
 
-  const handleGerarRelatorio = () => {
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false)
+
+  const handleGerarRelatorio = async () => {
     if (!student || !detail?.pdi) return
+    const pdi = detail.pdi
+    const fmt = (d?: string | null) => (d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR") : "-")
+    const fmtIso = (d: string) => new Date(d).toLocaleDateString("pt-BR")
 
-    const areasRows = detail.tracking
-      .map((t) => {
-        const area = getPdiArea(t.area)
-        const status = getPdiStatus(t.status)
-        return `<tr><td style="padding:8px;border-bottom:1px solid #ddd;">${escapeHtml(area.emoji)} ${escapeHtml(area.label)}</td><td style="padding:8px;border-bottom:1px solid #ddd;">${escapeHtml(t.objetivo)}</td><td style="padding:8px;border-bottom:1px solid #ddd;">${escapeHtml(status.emoji)} ${escapeHtml(status.label)}</td></tr>`
+    const blocks: ReportBlock[] = [
+      {
+        type: "keyValue",
+        rows: [
+          ["Criança", student.nome],
+          ["Data de nascimento", fmt(student.dataNascimento)],
+          ["Escola", student.escola || "-"],
+          ["Responsável", `${student.nomeResponsavel || "-"}${student.telefoneResponsavel ? ` (${student.telefoneResponsavel})` : ""}`],
+          ["Data de acolhimento", fmt(student.dataAcolhimento)],
+          ["PDI criado em", fmtIso(pdi.createdAt)],
+          ["Última atualização", fmtIso(pdi.updatedAt)],
+        ],
+      },
+      { type: "heading", text: "Histórico inicial" },
+      { type: "text", text: pdi.situacaoInicial },
+    ]
+
+    if (pdi.objetivosIniciais) {
+      blocks.push({ type: "heading", text: "Objetivos iniciais" }, { type: "text", text: pdi.objetivosIniciais })
+    }
+    if (pdi.observacoesIniciais) {
+      blocks.push({ type: "heading", text: "Observações" }, { type: "text", text: pdi.observacoesIniciais })
+    }
+
+    blocks.push({ type: "heading", text: "Áreas acompanhadas" })
+    if (detail.tracking.length > 0) {
+      blocks.push({
+        type: "table",
+        head: ["Área", "Objetivo", "Situação atual"],
+        rows: detail.tracking.map((t) => [getPdiArea(t.area).label, t.objetivo, getPdiStatus(t.status).label]),
       })
-      .join("")
+    } else {
+      blocks.push({ type: "text", text: "Nenhuma área em acompanhamento." })
+    }
 
-    const timelineRows = detail.evolutions
-      .map((ev) => {
-        const area = getPdiArea(ev.area)
-        const status = getPdiStatus(ev.status)
-        return `<div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee;">
-          <p style="margin:0 0 4px;font-weight:bold;">${new Date(ev.data + "T12:00:00").toLocaleDateString("pt-BR")} - ${escapeHtml(area.emoji)} ${escapeHtml(area.label)} (${escapeHtml(status.emoji)} ${escapeHtml(status.label)})</p>
-          <p style="margin:0 0 4px;color:#333;">${escapeHtml(ev.relato)}</p>
-          ${ev.proximosPassos ? `<p style="margin:0;font-size:13px;color:#666;"><b>Próximos passos:</b> ${escapeHtml(ev.proximosPassos)}</p>` : ""}
-          <p style="margin:4px 0 0;font-size:11px;color:#999;">Registrado por ${escapeHtml(ev.responsavelNome || "equipe")}</p>
-        </div>`
+    blocks.push({ type: "heading", text: "Linha do tempo geral" })
+    if (generalTimelineItems.length > 0) {
+      for (const item of generalTimelineItems) {
+        blocks.push({
+          type: "text",
+          text: `${fmt(item.data)} - ${item.label}${item.descricao ? ` - ${item.descricao}` : ""}`,
+        })
+      }
+    } else {
+      blocks.push({ type: "text", text: "Nenhum acontecimento registrado." })
+    }
+
+    blocks.push({ type: "heading", text: "Registros de evolução por área" })
+    if (detail.evolutions.length > 0) {
+      for (const ev of detail.evolutions) {
+        const parts = [
+          `${fmt(ev.data)} - ${getPdiArea(ev.area).label} (${getPdiStatus(ev.status).label})`,
+          ev.relato,
+          ev.proximosPassos ? `Próximos passos: ${ev.proximosPassos}` : "",
+          `Registrado por ${ev.responsavelNome || "equipe"}`,
+        ].filter(Boolean)
+        blocks.push({ type: "text", text: parts.join("\n") })
+      }
+    } else {
+      blocks.push({ type: "text", text: "Nenhum registro de evolução." })
+    }
+
+    setGerandoRelatorio(true)
+    try {
+      const result = await shareOrSaveReportPdf({
+        filename: `PDI - ${student.nome}`,
+        subtitle: `Plano de Desenvolvimento Individual (PDI) - Gerado em ${new Date().toLocaleDateString("pt-BR")}`,
+        blocks,
+        shareTitle: `PDI - ${student.nome}`,
       })
-      .join("")
-
-    const marcosRows = generalTimelineItems
-      .map(
-        (item) =>
-          `<p style="margin:0 0 8px;"><b>${new Date(item.data + "T12:00:00").toLocaleDateString("pt-BR")}</b> - ${escapeHtml(item.emoji)} ${escapeHtml(item.label)}${item.descricao ? ` - ${escapeHtml(item.descricao)}` : ""}</p>`
-      )
-      .join("")
-
-    const bodyHtml = `
-      <div class="student-info">
-        ${student.fotoUrl ? `<img class="student-photo" src="${escapeHtml(student.fotoUrl)}" alt="${escapeHtml(student.nome)}" />` : ""}
-        <div class="student-fields">
-          <p><b>Criança:</b> ${escapeHtml(student.nome)}</p>
-          <p><b>Data de nascimento:</b> ${student.dataNascimento ? new Date(student.dataNascimento + "T12:00:00").toLocaleDateString("pt-BR") : "-"}</p>
-          <p><b>Escola:</b> ${escapeHtml(student.escola || "-")}</p>
-          <p><b>Responsável:</b> ${escapeHtml(student.nomeResponsavel || "-")}${student.telefoneResponsavel ? ` (${escapeHtml(student.telefoneResponsavel)})` : ""}</p>
-          <p><b>Data de acolhimento:</b> ${student.dataAcolhimento ? new Date(student.dataAcolhimento + "T12:00:00").toLocaleDateString("pt-BR") : "-"}</p>
-          <p><b>PDI criado em:</b> ${new Date(detail.pdi!.createdAt).toLocaleDateString("pt-BR")}</p>
-          <p><b>Última atualização:</b> ${new Date(detail.pdi!.updatedAt).toLocaleDateString("pt-BR")}</p>
-        </div>
-      </div>
-
-      <h3>Histórico inicial</h3>
-      <p>${escapeHtml(detail.pdi!.situacaoInicial)}</p>
-      ${detail.pdi!.objetivosIniciais ? `<h3>Objetivos iniciais</h3><p>${escapeHtml(detail.pdi!.objetivosIniciais)}</p>` : ""}
-      ${detail.pdi!.observacoesIniciais ? `<h3>Observações</h3><p>${escapeHtml(detail.pdi!.observacoesIniciais)}</p>` : ""}
-
-      <h3>Áreas acompanhadas</h3>
-      <table>
-        <thead><tr><th>Área</th><th>Objetivo</th><th>Situação atual</th></tr></thead>
-        <tbody>${areasRows || '<tr><td colspan="3" style="padding:8px;">Nenhuma área em acompanhamento.</td></tr>'}</tbody>
-      </table>
-
-      <h3>Linha do tempo geral</h3>
-      ${marcosRows || "<p>Nenhum acontecimento registrado.</p>"}
-
-      <h3>Registros de evolução por área</h3>
-      ${timelineRows || "<p>Nenhum registro de evolução.</p>"}
-    `
-
-    openReportWindow({
-      title: `PDI - ${student.nome}`,
-      subtitle: `Plano de Desenvolvimento Individual (PDI) - Gerado em ${new Date().toLocaleDateString("pt-BR")}`,
-      bodyHtml,
-      extraStyles: `
-        .student-info { display: flex; gap: 20px; align-items: flex-start; }
-        .student-photo { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #f97316; flex-shrink: 0; }
-        .student-fields p { margin: 4px 0; }
-      `,
-    })
+      if (result === "downloaded") toast.success("Relatório gerado! Verifique seus downloads.")
+    } catch (error) {
+      console.error("Erro ao gerar relatório do PDI:", error)
+      toast.error("Não foi possível gerar o relatório. Tente novamente.")
+    } finally {
+      setGerandoRelatorio(false)
+    }
   }
 
   const confirmDeleteTracking = async () => {
@@ -514,9 +526,9 @@ export default function StudentPdiPage() {
             </div>
             {detail?.pdi && (
               <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                <Button variant="outline" onClick={handleGerarRelatorio}>
+                <Button variant="outline" onClick={handleGerarRelatorio} disabled={gerandoRelatorio}>
                   <Printer className="h-4 w-4 mr-2" />
-                  Gerar relatório
+                  {gerandoRelatorio ? "Gerando..." : "Gerar relatório"}
                 </Button>
                 {canDeletePdi && (
                   <Button
