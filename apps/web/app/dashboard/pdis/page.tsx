@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Brain, Search, Users, TrendingUp, ClipboardList, AlertTriangle, ChevronRight, Plus } from "lucide-react"
-import { getPdiDashboard, getStudents, getClasses, type PdiDashboardItem } from "@/lib/api"
+import { Brain, Search, Users, TrendingUp, ClipboardList, AlertTriangle, ChevronRight, Plus, Trash2, RotateCcw } from "lucide-react"
+import { getPdiDashboard, getStudents, getClasses, getPdiTrash, restoreStudentPdi, type PdiDashboardItem, type PdiTrashItem } from "@/lib/api"
 import { PDI_AREAS, PDI_STATUSES, PDI_STALE_DAYS, PDI_DEADLINE_WARNING_DAYS, getPdiArea, getPdiStatus, getOverallPdiStatus } from "@/lib/pdi-constants"
 import { PdiStatusBadge } from "@/components/pdi/pdi-status-badge"
 import type { Aluno, Turma } from "@/lib/types"
@@ -105,6 +105,97 @@ function daysSince(dateStr: string) {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
 }
 
+// Lixeira de PDIs: lista os PDIs excluídos (recuperáveis por até 7 dias) e permite restaurar.
+function LixeiraPdiDialog({ onRestored }: { onRestored: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [items, setItems] = useState<PdiTrashItem[]>([])
+  const [ttlDays, setTtlDays] = useState(7)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const data = await getPdiTrash()
+      setItems(data.trash)
+      setTtlDays(data.ttlDays)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível carregar a lixeira.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOpen = (next: boolean) => {
+    setOpen(next)
+    if (next) load()
+  }
+
+  const handleRestore = async (item: PdiTrashItem) => {
+    setRestoringId(item.studentId)
+    try {
+      await restoreStudentPdi(item.studentId)
+      toast.success(`PDI de ${item.studentName} restaurado!`)
+      setItems((prev) => prev.filter((i) => i.id !== item.id))
+      onRestored()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível restaurar o PDI.")
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  const daysLeft = (expiresAt: string) =>
+    Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <Button variant="outline" onClick={() => handleOpen(true)} className="shrink-0">
+        <Trash2 className="h-4 w-4 mr-2" />
+        Lixeira
+      </Button>
+      <DialogContent className="max-w-lg bg-background border border-border">
+        <DialogHeader>
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            <Trash2 className="h-5 w-5" /> Lixeira de PDIs
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            PDIs excluídos podem ser restaurados por até {ttlDays} dias. Depois disso são apagados definitivamente.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="mt-2 space-y-2 max-h-[60vh] overflow-y-auto">
+          {loading ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">A lixeira está vazia.</p>
+          ) : (
+            items.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{item.studentName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Excluído por {item.deletedByName || "—"} · restam {daysLeft(item.expiresAt)} dia(s)
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={restoringId === item.studentId}
+                  onClick={() => handleRestore(item)}
+                  className="shrink-0"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                  {restoringId === item.studentId ? "Restaurando..." : "Restaurar"}
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function PdisPage() {
   const [pdis, setPdis] = useState<PdiDashboardItem[]>([])
   const [students, setStudents] = useState<Aluno[]>([])
@@ -137,6 +228,15 @@ export default function PdisPage() {
     }
     load()
   }, [])
+
+  // Recarrega só a lista do dashboard (ex.: após restaurar um PDI da lixeira).
+  const reloadPdis = async () => {
+    try {
+      setPdis(await getPdiDashboard())
+    } catch (error) {
+      console.error("Erro ao recarregar a Central de PDIs:", error)
+    }
+  }
 
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students])
 
@@ -214,7 +314,10 @@ export default function PdisPage() {
               Visualize, acompanhe e registre a evolução das crianças atendidas pela instituição.
             </p>
           </div>
-          <SelecionarCriancaDialog students={students} studentsComPdi={new Set(pdis.map((p) => p.studentId))} />
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <LixeiraPdiDialog onRestored={reloadPdis} />
+            <SelecionarCriancaDialog students={students} studentsComPdi={new Set(pdis.map((p) => p.studentId))} />
+          </div>
         </div>
 
         {/* KPIs */}

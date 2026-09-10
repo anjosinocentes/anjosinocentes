@@ -5,7 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions"
 import { pdiInitialSchema, pdiUpdateSchema, firstZodError } from "@/lib/schemas"
 import { validateAttachmentFiles } from "@/lib/attachment-validation"
 import { PDI_AREAS, MAX_PDI_EVOLUTION_ATTACHMENT_BYTES, getPdiArea } from "@/lib/pdi-constants"
-import { toPdiView, toTrackingView, toEvolutionView } from "@/lib/server/pdi-server-utils"
+import { toPdiView, toTrackingView, toEvolutionView, purgeExpiredTrash, PDI_TRASH_TTL_DAYS } from "@/lib/server/pdi-server-utils"
 
 async function findStudent(db: any, id: string) {
   return db.collection("students").findOne({
@@ -26,14 +26,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     if (!student) {
       return NextResponse.json({ error: "Criança não encontrada." }, { status: 404 })
     }
-    const pdi = await db.collection("pdis").findOne({ studentId: id })
+    const pdi = await db.collection("pdis").findOne({ studentId: id, deletedAt: null })
     if (!pdi) {
       return NextResponse.json({ pdi: null, tracking: [], evolutions: [] })
     }
 
     const [tracking, evolutions] = await Promise.all([
-      db.collection("pdi_tracking").find({ studentId: id }).sort({ area: 1 }).toArray(),
-      db.collection("pdi_evolutions").find({ studentId: id }).sort({ data: -1, createdAt: -1 }).toArray(),
+      db.collection("pdi_tracking").find({ studentId: id, deletedAt: null }).sort({ area: 1 }).toArray(),
+      db.collection("pdi_evolutions").find({ studentId: id, deletedAt: null }).sort({ data: -1, createdAt: -1 }).toArray(),
     ])
 
     return NextResponse.json({
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Criança não encontrada." }, { status: 404 })
     }
 
-    const existing = await db.collection("pdis").findOne({ studentId: id })
+    const existing = await db.collection("pdis").findOne({ studentId: id, deletedAt: null })
     if (existing) {
       return NextResponse.json({ error: "Esta criança já possui um PDI cadastrado." }, { status: 409 })
     }
@@ -139,7 +139,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     const db = await getDb()
-    const pdi = await db.collection("pdis").findOne({ studentId: id })
+    const pdi = await db.collection("pdis").findOne({ studentId: id, deletedAt: null })
     if (!pdi) {
       return NextResponse.json({ error: "Esta criança ainda não possui um PDI cadastrado." }, { status: 404 })
     }
@@ -164,31 +164,35 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 // embutidos) e todos os registros relacionados (acompanhamentos e evoluções). Ação destrutiva
 // e irreversível, por isso restrita a ADMIN/DIRECTOR (a permissão PDIS por si só, que também
 // pode ser dada a professores/coordenadores, não basta para apagar o PDI inteiro).
+// Exclusão RECUPERÁVEL (soft-delete): quem tem a permissão PDIS pode excluir, mas o PDI não é
+// apagado de imediato - fica marcado com `deletedAt` e some das telas. Pode ser restaurado pela
+// Lixeira em até 7 dias (ver PDI_TRASH_TTL_DAYS e a rota /pdis/trash); depois disso é removido
+// definitivamente pela limpeza oportunista (purgeExpiredTrash).
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const auth = await requirePermission(req, PERMISSIONS.PDIS)
   if (auth instanceof NextResponse) return auth
-  if (auth.role !== "ADMIN" && auth.role !== "DIRECTOR") {
-    return NextResponse.json({ error: "Apenas ADMIN ou Diretor podem excluir o PDI." }, { status: 403 })
-  }
   try {
     const { id } = await props.params
     if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 })
 
     const db = await getDb()
-    const pdi = await db.collection("pdis").findOne({ studentId: id })
+    await purgeExpiredTrash(db)
+    const pdi = await db.collection("pdis").findOne({ studentId: id, deletedAt: null })
     if (!pdi) {
       return NextResponse.json({ error: "Esta criança não possui um PDI cadastrado." }, { status: 404 })
     }
     const student = await db.collection("students").findOne({ id })
 
-    // Remove os registros relacionados antes do documento principal.
+    const deletedAt = new Date().toISOString()
+    const mark = { deletedAt, deletedBy: auth.id, deletedByName: auth.name }
+    // Marca o PDI e todos os registros relacionados (mesmo lote) como excluídos, sem apagar.
     await Promise.all([
-      db.collection("pdi_tracking").deleteMany({ studentId: id }),
-      db.collection("pdi_evolutions").deleteMany({ studentId: id }),
+      db.collection("pdis").updateOne({ id: pdi.id }, { $set: mark }),
+      db.collection("pdi_tracking").updateMany({ studentId: id, deletedAt: null }, { $set: mark }),
+      db.collection("pdi_evolutions").updateMany({ studentId: id, deletedAt: null }, { $set: mark }),
     ])
-    await db.collection("pdis").deleteOne({ id: pdi.id })
 
-    await logAudit(req, "DELETE", "pdi", `Excluiu o PDI de ${student?.nome ?? id}`, pdi.id)
+    await logAudit(req, "DELETE", "pdi", `Excluiu o PDI de ${student?.nome ?? id} (recuperável por ${PDI_TRASH_TTL_DAYS} dias)`, pdi.id)
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

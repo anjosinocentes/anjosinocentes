@@ -12,10 +12,11 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
+    // Ignora PDIs (e registros) na lixeira - só entram os ativos (deletedAt ausente/nulo).
     const [pdisList, trackingList, evolutionsList] = await Promise.all([
-      db.collection("pdis").find({}).toArray(),
-      db.collection("pdi_tracking").find({}).toArray(),
-      db.collection("pdi_evolutions").find({}, { projection: { studentId: 1, data: 1 } }).toArray(),
+      db.collection("pdis").find({ deletedAt: null }).toArray(),
+      db.collection("pdi_tracking").find({ deletedAt: null }).toArray(),
+      db.collection("pdi_evolutions").find({ deletedAt: null }, { projection: { studentId: 1, data: 1 } }).toArray(),
     ])
 
     const lastEvolutionByStudent = new Map<string, string>()

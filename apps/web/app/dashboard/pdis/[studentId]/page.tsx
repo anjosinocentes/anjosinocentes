@@ -860,8 +860,8 @@ export default function StudentPdiPage() {
             <DialogTitle className="text-foreground">Excluir PDI</DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm mt-1">
               Tem certeza que deseja excluir o PDI de <span className="font-semibold text-foreground">{student.nome}</span>?
-              Isso apaga o histórico inicial, todos os acompanhamentos, evoluções e marcos da linha do tempo.
-              Esta ação não pode ser desfeita.
+              O PDI (histórico inicial, acompanhamentos, evoluções e marcos) vai para a <span className="font-semibold text-foreground">Lixeira</span> e
+              pode ser restaurado por até <span className="font-semibold text-foreground">7 dias</span> na Central de PDIs. Depois disso é apagado definitivamente.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2">

@@ -519,9 +519,31 @@ export async function updateStudentPdi(studentId: string, payload: any): Promise
   return res.pdi
 }
 
+// Exclusão recuperável: o PDI vai para a lixeira e pode ser restaurado por até 7 dias.
 export async function deleteStudentPdi(studentId: string): Promise<void> {
   await requestStrict<void>(`/students/${studentId}/pdi`, {
     method: 'DELETE',
+  })
+}
+
+export type PdiTrashItem = {
+  id: string
+  studentId: string
+  studentName: string
+  deletedAt: string
+  deletedByName: string | null
+  expiresAt: string
+}
+
+// Lista os PDIs na lixeira (excluídos, ainda dentro do prazo de recuperação de 7 dias).
+export async function getPdiTrash(): Promise<{ trash: PdiTrashItem[]; ttlDays: number }> {
+  return requestStrict<{ trash: PdiTrashItem[]; ttlDays: number }>(`/pdis/trash`)
+}
+
+// Restaura da lixeira o PDI de uma criança (desfaz a exclusão).
+export async function restoreStudentPdi(studentId: string): Promise<void> {
+  await requestStrict<void>(`/students/${studentId}/pdi/restore`, {
+    method: 'POST',
   })
 }
 
