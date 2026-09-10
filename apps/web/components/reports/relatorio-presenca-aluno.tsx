@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Calendar, FileDown, Printer } from "lucide-react"
 import { SearchableSelect } from "./searchable-select"
 import { getAttendanceRecords } from "@/lib/api"
-import { openReportWindow, escapeHtml } from "@/lib/report-print"
+import { openReportWindow, escapeHtml, shareOrSaveReportPdf, type ReportBlock } from "@/lib/report-print"
 import type { Aluno, Turma } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -141,6 +141,54 @@ export function RelatorioPresencaAluno({
       title: `Presença - ${student.nome}`,
       subtitle: `Relatório de Presença por Aluno - Gerado em ${new Date().toLocaleDateString("pt-BR")}`,
       bodyHtml: buildBodyHtml(),
+    })
+  }
+
+  // Gera o PDF e, no celular, abre a folha de compartilhamento nativa (Salvar em Arquivos /
+  // Compartilhar); no desktop, baixa. Evita a aba nova que trava no iPhone.
+  const handleDownloadPdf = async () => {
+    if (!student || !rows || !resumo) return
+    const blocks: ReportBlock[] = [
+      {
+        type: "keyValue",
+        rows: [
+          ["Criança", student.nome],
+          ["Turma", resultClassName || "Todas"],
+          ["Período", `${new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR")} a ${new Date(endDate + "T12:00:00").toLocaleDateString("pt-BR")}`],
+        ],
+      },
+      { type: "heading", text: "Registros de presença" },
+    ]
+    if (rows.length > 0) {
+      blocks.push({
+        type: "table",
+        head: ["Data", "Dia", "Turma", "Situação"],
+        rows: rows.map((r) => [
+          new Date(r.date + "T12:00:00").toLocaleDateString("pt-BR"),
+          formatDiaSemana(r.date),
+          (r.classId && classById.get(r.classId)?.nome) || "-",
+          r.status === "PRESENT" ? "Presente" : "Falta",
+        ]),
+      })
+    } else {
+      blocks.push({ type: "text", text: "Nenhum registro no período." })
+    }
+    blocks.push(
+      { type: "heading", text: "Resumo" },
+      {
+        type: "keyValue",
+        rows: [
+          ["Total de registros", String(resumo.total)],
+          ["Total de presenças", String(resumo.presencas)],
+          ["Total de faltas", String(resumo.faltas)],
+          ["Percentual de presença", `${resumo.percentual}%`],
+        ],
+      }
+    )
+    await shareOrSaveReportPdf({
+      filename: `Presenca - ${student.nome}`,
+      subtitle: `Relatório de Presença por Aluno - Gerado em ${new Date().toLocaleDateString("pt-BR")}`,
+      blocks,
     })
   }
 
@@ -278,7 +326,7 @@ export function RelatorioPresencaAluno({
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handleExport} className="flex-1">
+                <Button variant="outline" onClick={handleDownloadPdf} className="flex-1">
                   <FileDown className="h-4 w-4 mr-2" />
                   Gerar PDF
                 </Button>

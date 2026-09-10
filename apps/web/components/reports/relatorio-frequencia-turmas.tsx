@@ -15,7 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Layers, FileDown, Printer } from "lucide-react"
 import { getAttendanceRecords } from "@/lib/api"
-import { openReportWindow, escapeHtml, downloadReportPdf } from "@/lib/report-print"
+import { openReportWindow, escapeHtml, shareOrSaveReportPdf } from "@/lib/report-print"
 import type { Turma } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -128,7 +128,7 @@ export function RelatorioFrequenciaTurmas({
 
   const handleDownloadPdf = async () => {
     if (!rows || !geral) return
-    await downloadReportPdf({
+    await shareOrSaveReportPdf({
       filename: `Frequencia por Turma - ${startDate} a ${endDate}`,
       subtitle,
       blocks: [

@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, FileDown, Printer } from "lucide-react"
 import { SearchableSelect } from "./searchable-select"
 import { getAttendanceRecords } from "@/lib/api"
-import { openReportWindow, escapeHtml } from "@/lib/report-print"
+import { openReportWindow, escapeHtml, shareOrSaveReportPdf, type ReportBlock } from "@/lib/report-print"
 import type { Aluno, Turma } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -171,6 +171,62 @@ export function RelatorioPresencaTurma({
     })
   }
 
+  // Gera o PDF e, no celular, abre a folha de compartilhamento nativa (Salvar em Arquivos /
+  // Compartilhar); no desktop, baixa. Evita a aba nova que trava no iPhone.
+  const handleDownloadPdf = async () => {
+    if (!turma || !alunosResumo || !resumoTurma) return
+    const blocks: ReportBlock[] = [
+      {
+        type: "keyValue",
+        rows: [
+          ["Turma", turma.nome],
+          ["Período", `${new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR")} a ${new Date(endDate + "T12:00:00").toLocaleDateString("pt-BR")}`],
+        ],
+      },
+      { type: "heading", text: "Frequência por aluno" },
+    ]
+    if (alunosResumo.length > 0) {
+      blocks.push({
+        type: "table",
+        head: ["Aluno", "Presenças", "Faltas", "Total", "% Presença"],
+        rows: alunosResumo.map((a) => [a.nome, String(a.presencas), String(a.faltas), String(a.total), `${a.percentual}%`]),
+      })
+    } else {
+      blocks.push({ type: "text", text: "Nenhum aluno matriculado nesta turma." })
+    }
+    blocks.push(
+      { type: "heading", text: "Resumo da turma" },
+      {
+        type: "keyValue",
+        rows: [
+          ["Quantidade de alunos", String(resumoTurma.quantidadeAlunos)],
+          ["Total de presenças", String(resumoTurma.totalPresencas)],
+          ["Total de faltas", String(resumoTurma.totalFaltas)],
+          ["Média de presença da turma", `${resumoTurma.mediaPresenca}%`],
+        ],
+      },
+      { type: "heading", text: "Detalhamento por data" }
+    )
+    if ((porDia || []).length > 0) {
+      blocks.push({
+        type: "table",
+        head: ["Data", "Presentes", "Faltas"],
+        rows: (porDia || []).map((d) => [
+          new Date(d.date + "T12:00:00").toLocaleDateString("pt-BR"),
+          String(d.presentes),
+          String(d.faltas),
+        ]),
+      })
+    } else {
+      blocks.push({ type: "text", text: "Nenhum registro no período." })
+    }
+    await shareOrSaveReportPdf({
+      filename: `Presenca - ${turma.nome}`,
+      subtitle: `Relatório de Presença por Turma - Gerado em ${new Date().toLocaleDateString("pt-BR")}`,
+      blocks,
+    })
+  }
+
   return (
     <Dialog
       open={open}
@@ -289,7 +345,7 @@ export function RelatorioPresencaTurma({
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handleExport} className="flex-1">
+                <Button variant="outline" onClick={handleDownloadPdf} className="flex-1">
                   <FileDown className="h-4 w-4 mr-2" />
                   Gerar PDF
                 </Button>

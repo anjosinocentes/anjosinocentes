@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { FileText, FileDown, Printer } from "lucide-react"
 import { SearchableSelect } from "./searchable-select"
-import { openReportWindow, escapeHtml, downloadReportPdf } from "@/lib/report-print"
+import { openReportWindow, escapeHtml, shareOrSaveReportPdf } from "@/lib/report-print"
 import type { Aluno, Turma } from "@/lib/types"
 
 // "Ficha Cadastral do Aluno": consolida, num único documento imprimível, todos os dados de
@@ -85,7 +85,7 @@ export function RelatorioFichaAluno({
   // Baixa um PDF de verdade direto na máquina (não usa a janela/impressora de PDF).
   const handleDownloadPdf = async () => {
     if (!student) return
-    await downloadReportPdf({
+    await shareOrSaveReportPdf({
       filename: `Ficha - ${student.nome}`,
       subtitle,
       blocks: [

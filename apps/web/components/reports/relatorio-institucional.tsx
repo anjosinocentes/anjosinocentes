@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Spinner } from "@/components/ui/spinner"
 import { BarChart3, FileDown, Printer } from "lucide-react"
 import { getReportsStats } from "@/lib/api"
-import { openReportWindow, escapeHtml, downloadReportPdf } from "@/lib/report-print"
+import { openReportWindow, escapeHtml, shareOrSaveReportPdf } from "@/lib/report-print"
 import { toast } from "sonner"
 
 const MESES_POR_PERIODO: Record<string, number> = { trimestre: 3, semestre: 6, ano: 12 }
@@ -74,7 +74,7 @@ export function RelatorioInstitucional({
 
   const handleDownloadPdf = async () => {
     if (!resumo) return
-    await downloadReportPdf({
+    await shareOrSaveReportPdf({
       filename: `Relatorio Institucional - ${PERIODO_LABEL[periodo]}`,
       subtitle,
       blocks: [

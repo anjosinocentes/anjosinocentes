@@ -13,7 +13,7 @@ import {
 import { Target, FileDown, Printer } from "lucide-react"
 import { SearchableSelect } from "./searchable-select"
 import { Spinner } from "@/components/ui/spinner"
-import { openReportWindow, escapeHtml, downloadReportPdf, type ReportBlock } from "@/lib/report-print"
+import { openReportWindow, escapeHtml, shareOrSaveReportPdf, type ReportBlock } from "@/lib/report-print"
 import { getStudentPdi, type StudentPdiDetail } from "@/lib/api"
 import { getPdiArea, getPdiStatus } from "@/lib/pdi-constants"
 import type { Aluno, Turma } from "@/lib/types"
@@ -127,7 +127,7 @@ export function RelatorioPdiAluno({
 
   const handleDownloadPdf = async () => {
     if (!student) return
-    await downloadReportPdf({
+    await shareOrSaveReportPdf({
       filename: `PDI - ${student.nome}`,
       subtitle,
       blocks: buildBlocks(),
