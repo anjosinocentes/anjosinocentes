@@ -367,7 +367,8 @@ export default function StudentPdiPage() {
         blocks,
         shareTitle: `PDI - ${student.nome}`,
       })
-      if (result === "downloaded") toast.success("Relatório gerado! Verifique seus downloads.")
+      if (result === "saved") toast.success("Relatório salvo com sucesso!")
+      else if (result === "downloaded") toast.success("Relatório gerado! Verifique seus downloads.")
     } catch (error) {
       console.error("Erro ao gerar relatório do PDI:", error)
       toast.error("Não foi possível gerar o relatório. Tente novamente.")

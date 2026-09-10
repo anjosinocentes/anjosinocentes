@@ -273,9 +273,12 @@ export async function downloadReportPdf({
   doc.save(toPdfFilename(filename))
 }
 
-// Gera o PDF e, no celular (iOS/Android), abre a FOLHA DE COMPARTILHAMENTO NATIVA do sistema
-// (Compartilhar / Salvar em Arquivos), em vez de abrir uma aba nova que o usuário não sabe
-// fechar. No desktop (ou onde o compartilhamento de arquivos não é suportado), baixa o PDF.
+// Gera o PDF e entrega no melhor formato para cada dispositivo:
+//  - CELULAR (touch): abre a FOLHA DE COMPARTILHAMENTO NATIVA (Compartilhar / Salvar em Arquivos),
+//    em vez de abrir uma aba nova que o usuário não sabe fechar.
+//  - DESKTOP (Chrome/Edge): abre a caixa nativa "Salvar como", deixando o usuário ESCOLHER a
+//    pasta (ex.: Documentos) - igual ao "salvar nos arquivos" do celular.
+//  - Onde nenhum dos dois é suportado (ex.: Firefox/Safari desktop): baixa direto (pasta Downloads).
 // Retorna a "via" usada, útil para o chamador dar um feedback adequado.
 export async function shareOrSaveReportPdf({
   filename,
@@ -287,27 +290,48 @@ export async function shareOrSaveReportPdf({
   subtitle: string
   blocks: ReportBlock[]
   shareTitle?: string
-}): Promise<"shared" | "downloaded" | "cancelled"> {
+}): Promise<"shared" | "saved" | "downloaded" | "cancelled"> {
   const doc = await buildReportPdf({ subtitle, blocks })
   const name = toPdfFilename(filename)
   const blob = doc.output("blob")
 
   const nav = typeof navigator !== "undefined" ? (navigator as any) : undefined
+  const win = typeof window !== "undefined" ? (window as any) : undefined
   const file = typeof File !== "undefined" ? new File([blob], name, { type: "application/pdf" }) : null
 
-  // Só tenta o compartilhamento nativo quando o dispositivo realmente suporta compartilhar
-  // ARQUIVOS (canShare com files) - assim o desktop continua baixando normalmente.
-  if (file && nav?.canShare && nav.canShare({ files: [file] })) {
+  // Detecta dispositivo touch (celular/tablet). No desktop, mesmo quando o compartilhamento de
+  // arquivos existe (ex.: Windows), preferimos a caixa "Salvar como" em vez da folha de compartilhar.
+  const isTouch = typeof win?.matchMedia === "function" && win.matchMedia("(pointer: coarse)").matches
+
+  // 1) CELULAR: compartilhamento nativo com arquivo (Salvar em Arquivos / Compartilhar).
+  if (isTouch && file && nav?.canShare && nav.canShare({ files: [file] })) {
     try {
       await nav.share({ files: [file], title: shareTitle || name })
       return "shared"
     } catch (err: any) {
-      // Usuário fechou a folha de compartilhamento: não é erro, não força download.
-      if (err?.name === "AbortError") return "cancelled"
-      // Qualquer outra falha (ex.: perda do gesto do usuário): cai para o download abaixo.
+      if (err?.name === "AbortError") return "cancelled" // usuário fechou a folha de compartilhar
+      // Outra falha (ex.: perda do gesto do usuário): tenta os caminhos abaixo.
     }
   }
 
+  // 2) DESKTOP (Chrome/Edge): caixa nativa "Salvar como" - o usuário escolhe a pasta.
+  if (typeof win?.showSaveFilePicker === "function") {
+    try {
+      const handle = await win.showSaveFilePicker({
+        suggestedName: name,
+        types: [{ description: "Documento PDF", accept: { "application/pdf": [".pdf"] } }],
+      })
+      const writable = await handle.createWritable()
+      await writable.write(blob)
+      await writable.close()
+      return "saved"
+    } catch (err: any) {
+      if (err?.name === "AbortError") return "cancelled" // usuário cancelou o "Salvar como"
+      // Sem permissão / não suportado de fato: cai para o download direto abaixo.
+    }
+  }
+
+  // 3) Fallback: baixa direto (pasta de downloads do navegador).
   doc.save(name)
   return "downloaded"
 }
