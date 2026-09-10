@@ -519,6 +519,12 @@ export async function updateStudentPdi(studentId: string, payload: any): Promise
   return res.pdi
 }
 
+export async function deleteStudentPdi(studentId: string): Promise<void> {
+  await requestStrict<void>(`/students/${studentId}/pdi`, {
+    method: 'DELETE',
+  })
+}
+
 export async function createPdiEvent(studentId: string, payload: any): Promise<PdiEvent> {
   const res = await requestStrict<{ evento: PdiEvent }>(`/students/${studentId}/pdi/events`, {
     method: 'POST',

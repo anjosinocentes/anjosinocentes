@@ -159,3 +159,40 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     return NextResponse.json({ error: "Não foi possível atualizar o PDI. Tente novamente." }, { status: 500 })
   }
 }
+
+// Exclui o PDI da criança POR COMPLETO: o documento do PDI (que inclui os eventos/marcos
+// embutidos) e todos os registros relacionados (acompanhamentos e evoluções). Ação destrutiva
+// e irreversível, por isso restrita a ADMIN/DIRECTOR (a permissão PDIS por si só, que também
+// pode ser dada a professores/coordenadores, não basta para apagar o PDI inteiro).
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const auth = await requirePermission(req, PERMISSIONS.PDIS)
+  if (auth instanceof NextResponse) return auth
+  if (auth.role !== "ADMIN" && auth.role !== "DIRECTOR") {
+    return NextResponse.json({ error: "Apenas ADMIN ou Diretor podem excluir o PDI." }, { status: 403 })
+  }
+  try {
+    const { id } = await props.params
+    if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 })
+
+    const db = await getDb()
+    const pdi = await db.collection("pdis").findOne({ studentId: id })
+    if (!pdi) {
+      return NextResponse.json({ error: "Esta criança não possui um PDI cadastrado." }, { status: 404 })
+    }
+    const student = await db.collection("students").findOne({ id })
+
+    // Remove os registros relacionados antes do documento principal.
+    await Promise.all([
+      db.collection("pdi_tracking").deleteMany({ studentId: id }),
+      db.collection("pdi_evolutions").deleteMany({ studentId: id }),
+    ])
+    await db.collection("pdis").deleteOne({ id: pdi.id })
+
+    await logAudit(req, "DELETE", "pdi", `Excluiu o PDI de ${student?.nome ?? id}`, pdi.id)
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error("Erro em DELETE /students/:id/pdi:", err)
+    return NextResponse.json({ error: "Não foi possível excluir o PDI. Tente novamente." }, { status: 500 })
+  }
+}

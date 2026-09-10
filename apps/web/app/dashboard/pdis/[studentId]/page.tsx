@@ -39,6 +39,7 @@ import {
   deletePdiTracking,
   deletePdiEvolution,
   deletePdiEvent,
+  deleteStudentPdi,
   type StudentPdiDetail,
 } from "@/lib/api"
 import { PDI_AREAS, PDI_STATUSES, getPdiArea, getPdiStatus } from "@/lib/pdi-constants"
@@ -192,8 +193,12 @@ export default function StudentPdiPage() {
   const [deletingEvolution, setDeletingEvolution] = useState(false)
   const [eventIdToDelete, setEventIdToDelete] = useState<string | null>(null)
   const [deletingEvent, setDeletingEvent] = useState(false)
+  const [confirmDeletePdiOpen, setConfirmDeletePdiOpen] = useState(false)
+  const [deletingPdi, setDeletingPdi] = useState(false)
 
   const canDeleteEvolution = user?.role === "ADMIN" || user?.role === "DIRECTOR"
+  // Excluir o PDI inteiro é destrutivo: mesma restrição do backend (ADMIN/Diretor).
+  const canDeletePdi = user?.role === "ADMIN" || user?.role === "DIRECTOR"
 
   const loadAll = async () => {
     try {
@@ -413,6 +418,20 @@ export default function StudentPdiPage() {
     }
   }
 
+  const confirmDeletePdi = async () => {
+    setDeletingPdi(true)
+    try {
+      await deleteStudentPdi(studentId)
+      toast.success("PDI excluído com sucesso!")
+      setConfirmDeletePdiOpen(false)
+      router.push("/dashboard/pdis")
+    } catch (error) {
+      console.error("Erro ao excluir PDI:", error)
+      toast.error(error instanceof Error ? error.message : "Erro ao excluir o PDI.")
+      setDeletingPdi(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -494,10 +513,22 @@ export default function StudentPdiPage() {
               )}
             </div>
             {detail?.pdi && (
-              <Button variant="outline" onClick={handleGerarRelatorio} className="shrink-0">
-                <Printer className="h-4 w-4 mr-2" />
-                Gerar relatório
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                <Button variant="outline" onClick={handleGerarRelatorio}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Gerar relatório
+                </Button>
+                {canDeletePdi && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmDeletePdiOpen(true)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/40"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir PDI
+                  </Button>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -804,6 +835,33 @@ export default function StudentPdiPage() {
               className="bg-destructive hover:bg-destructive/90 text-xs"
             >
               {deletingEvent ? "Excluindo..." : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar exclusão do PDI inteiro */}
+      <Dialog open={confirmDeletePdiOpen} onOpenChange={(open) => { if (!open && !deletingPdi) setConfirmDeletePdiOpen(false) }}>
+        <DialogContent className="max-w-md bg-background border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Excluir PDI</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm mt-1">
+              Tem certeza que deseja excluir o PDI de <span className="font-semibold text-foreground">{student.nome}</span>?
+              Isso apaga o histórico inicial, todos os acompanhamentos, evoluções e marcos da linha do tempo.
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setConfirmDeletePdiOpen(false)} disabled={deletingPdi} className="text-xs">
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeletePdi}
+              disabled={deletingPdi}
+              className="bg-destructive hover:bg-destructive/90 text-xs"
+            >
+              {deletingPdi ? "Excluindo..." : "Excluir PDI"}
             </Button>
           </DialogFooter>
         </DialogContent>
