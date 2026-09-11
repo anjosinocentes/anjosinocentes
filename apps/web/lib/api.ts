@@ -112,8 +112,11 @@ export async function getStudents(): Promise<Aluno[]> {
   return data.students || []
 }
 
+// Mutações usam requestStrict (não request): erros do servidor - CPF duplicado (409), campo
+// obrigatório (400), sem permissão (403) - precisam CHEGAR ao usuário como mensagem real. O
+// request() "frouxo" engoliria o erro num payload vazio, fazendo uma falha parecer sucesso.
 export async function createStudent(student: any): Promise<Aluno> {
-  const data = await request<{ student: Aluno }>('/students', {
+  const data = await requestStrict<{ student: Aluno }>('/students', {
     method: 'POST',
     body: JSON.stringify(student),
   })
@@ -121,14 +124,14 @@ export async function createStudent(student: any): Promise<Aluno> {
 }
 
 export async function updateStudent(id: string, student: any): Promise<void> {
-  await request<void>(`/students/${id}`, {
+  await requestStrict<void>(`/students/${id}`, {
     method: 'PUT',
     body: JSON.stringify(student),
   })
 }
 
 export async function deleteStudent(id: string): Promise<void> {
-  await request<void>(`/students/${id}`, {
+  await requestStrict<void>(`/students/${id}`, {
     method: 'DELETE',
   })
 }

@@ -407,7 +407,8 @@ export default function AlunosPage() {
       resetForm()
     } catch (error) {
       console.error("Erro ao salvar criança:", error)
-      toast.error("Erro ao salvar criança. Tente novamente.")
+      // Mostra o motivo real vindo do servidor (ex.: CPF duplicado, campo obrigatório).
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar criança. Tente novamente.")
     }
   }
 
@@ -442,7 +443,7 @@ export default function AlunosPage() {
       }
     } catch (error) {
       console.error("Erro ao salvar criança:", error)
-      toast.error("Erro ao salvar criança. Tente novamente.")
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar criança. Tente novamente.")
     }
   }
 
