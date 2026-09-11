@@ -1,21 +1,39 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc } from "@/lib/server/server-db"
-import { requirePermission } from "@/lib/server/server-auth"
+import { requireAuth, requirePermission } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { studentSchema, firstZodError } from "@/lib/schemas"
 
+// Lista "enxuta" para quem NÃO tem a permissão de Crianças (ex.: um Professor com só "Presença"):
+// apenas o necessário para montar chamadas/turmas (nome, turma, curso, foto). Sem dados sensíveis
+// (CPF, endereço, telefone, responsável, e-mail), que ficam restritos a quem tem "alunos".
+function toRosterView(doc: any) {
+  return {
+    id: doc.id,
+    nome: doc.nome,
+    curso: doc.curso || "",
+    fotoUrl: doc.fotoUrl || null,
+    classId: doc.classId ?? null,
+    class_id: doc.class_id ?? null,
+    classIds: doc.classIds ?? [],
+    class_ids: doc.class_ids ?? [],
+  }
+}
+
 export async function GET(req: NextRequest) {
-  // Dados sensíveis de crianças (CPF, endereço, telefone): exige a permissão "alunos",
-  // não apenas estar autenticado. ADMIN/DIRECTOR sempre passam.
-  const auth = await requirePermission(req, PERMISSIONS.ALUNOS)
+  // Qualquer usuário autenticado pode obter a LISTA (necessária p/ chamada, turmas, calendário),
+  // mas só quem tem a permissão "alunos" (ou o ADMIN) recebe os DADOS SENSÍVEIS completos. Os
+  // demais recebem uma lista enxuta (nome + turma), preservando a privacidade das crianças.
+  const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
-    const docs = await db.collection("students").find({}).toArray()
-    const students = docs.map(normalizeDoc)
+    const docs = (await db.collection("students").find({}).toArray()).map(normalizeDoc)
+    const canSeeFull = auth.role === "ADMIN" || !!auth.permissions?.includes(PERMISSIONS.ALUNOS)
+    const students = canSeeFull ? docs : docs.map(toRosterView)
     return NextResponse.json({ students })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: "Não foi possível carregar a lista de crianças." }, { status: 500 })
   }
 }
 
