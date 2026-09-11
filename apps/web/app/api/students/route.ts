@@ -20,18 +20,41 @@ function toRosterView(doc: any) {
   }
 }
 
+// Turmas que este usuário leciona (professorId = id do usuário).
+async function getMyClassIds(db: any, userId: string): Promise<Set<string>> {
+  const classes = await db
+    .collection("classes")
+    .find({ $or: [{ professorId: userId }, { professor_id: userId }] })
+    .toArray()
+  return new Set(classes.map((c: any) => c.id))
+}
+
+function studentInClasses(s: any, classIds: Set<string>): boolean {
+  if (s.classId && classIds.has(s.classId)) return true
+  if (s.class_id && classIds.has(s.class_id)) return true
+  const list = Array.isArray(s.classIds) ? s.classIds : Array.isArray(s.class_ids) ? s.class_ids : []
+  return list.some((id: string) => classIds.has(id))
+}
+
 export async function GET(req: NextRequest) {
-  // Qualquer usuário autenticado pode obter a LISTA (necessária p/ chamada, turmas, calendário),
-  // mas só quem tem a permissão "alunos" (ou o ADMIN) recebe os DADOS SENSÍVEIS completos. Os
-  // demais recebem uma lista enxuta (nome + turma), preservando a privacidade das crianças.
+  // Três níveis de acesso à lista de crianças, do mais amplo ao mais restrito:
+  //  1) ADMIN ou quem tem a permissão "alunos" -> lista COMPLETA com dados sensíveis (CPF, etc.).
+  //  2) Demais usuários -> apenas as crianças das TURMAS QUE LECIONAM (professorId = seu id), e
+  //     ainda assim só com dados enxutos (nome, turma, curso, foto) para montar a chamada. Não
+  //     enxergam a escola inteira - só o seu contexto. Preserva a privacidade dos menores.
+  //  3) Quem não leciona nenhuma turma e não tem "alunos" -> lista vazia.
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
     const docs = (await db.collection("students").find({}).toArray()).map(normalizeDoc)
     const canSeeFull = auth.role === "ADMIN" || !!auth.permissions?.includes(PERMISSIONS.ALUNOS)
-    const students = canSeeFull ? docs : docs.map(toRosterView)
-    return NextResponse.json({ students })
+    if (canSeeFull) {
+      return NextResponse.json({ students: docs })
+    }
+    const myClassIds = await getMyClassIds(db, auth.id)
+    const scoped = docs.filter((s: any) => studentInClasses(s, myClassIds)).map(toRosterView)
+    return NextResponse.json({ students: scoped })
   } catch (err: any) {
     return NextResponse.json({ error: "Não foi possível carregar a lista de crianças." }, { status: 500 })
   }
