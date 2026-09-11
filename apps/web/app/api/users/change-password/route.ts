@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     await db.collection("users").updateOne(filter, { $set: { passwordHash }, $unset: { password: "" } })
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error("Erro em POST /users/change-password:", err)
+    return NextResponse.json({ error: "Não foi possível alterar a senha. Tente novamente." }, { status: 500 })
   }
 }

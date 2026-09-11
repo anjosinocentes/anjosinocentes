@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, UserCheck, BookOpen, TrendingUp, AlertTriangle, LayoutDashboard, Cake, CalendarClock, Loader2 } from "lucide-react"
-import { getStudentsStats, getReportsStats, getStudents, getEvents, type StudentStats } from "@/lib/api"
+import { getStudentsStats, getReportsStats, getDashboardStats, getStudents, getEvents, type StudentStats } from "@/lib/api"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 import { useAuth } from "@/components/auth/auth-provider"
@@ -93,37 +93,62 @@ export default function DashboardPage() {
     setChartReady(true)
   }, [])
 
-  useEffect(() => {
-    Promise.all([getStudentsStats(), getReportsStats()])
-      .then(([stats, reports]) => {
-        const hoje = new Date()
-        const atividadesRecentes = (stats.recentStudents || []).slice(0, 4).map((student) => {
-          const createdDate = new Date(student.createdAt)
-          const diffTime = Math.abs(hoje.getTime() - createdDate.getTime())
-          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-          let tempo = diffDays === 1 ? "1 dia atrás" : `${diffDays} dias atrás`
-          if (diffDays === 0) tempo = "hoje"
-          return {
-            tipo: "cadastro",
-            descricao: `Nova criança cadastrada: ${student.name}`,
-            tempo
-          }
-        })
+  const canReports = hasPermission(user, PERMISSIONS.RELATORIOS)
 
-        setDashboardData({
-          totalAlunos: stats.totalCount,
-          novosCadastros: stats.newRegistrations7d,
-          presentesHoje: stats.presentToday || 0,
-          atividadesRecentes,
-          riskStudents: stats.riskStudents || []
+  useEffect(() => {
+    if (!user) return
+
+    // Quem tem RELATÓRIOS vê o painel completo (cadastros recentes, risco de frequência, gráficos).
+    // Quem NÃO tem recebe só as CONTAGENS não sensíveis de /stats - sem nomes de crianças nem
+    // agregados de relatório - mantendo o backend como fonte da verdade (ver gate em /api/stats).
+    if (canReports) {
+      Promise.all([getStudentsStats(), getReportsStats()])
+        .then(([stats, reports]) => {
+          const hoje = new Date()
+          const atividadesRecentes = (stats.recentStudents || []).slice(0, 4).map((student) => {
+            const createdDate = new Date(student.createdAt)
+            const diffTime = Math.abs(hoje.getTime() - createdDate.getTime())
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+            let tempo = diffDays === 1 ? "1 dia atrás" : `${diffDays} dias atrás`
+            if (diffDays === 0) tempo = "hoje"
+            return {
+              tipo: "cadastro",
+              descricao: `Nova criança cadastrada: ${student.name}`,
+              tempo
+            }
+          })
+
+          setDashboardData({
+            totalAlunos: stats.totalCount,
+            novosCadastros: stats.newRegistrations7d,
+            presentesHoje: stats.presentToday || 0,
+            atividadesRecentes,
+            riskStudents: stats.riskStudents || []
+          })
+          setReportsData(reports)
         })
-        setReportsData(reports)
-      })
-      .catch((err) => {
-        console.error(err)
-        setError("Erro ao carregar dados. Verifique a conexão com o servidor.")
-      })
-  }, [])
+        .catch((err) => {
+          console.error(err)
+          setError("Erro ao carregar dados. Verifique a conexão com o servidor.")
+        })
+    } else {
+      getDashboardStats()
+        .then((data) => {
+          setDashboardData({
+            totalAlunos: data.totalStudents ?? data.stats.totalAlunos,
+            novosCadastros: 0,
+            presentesHoje: data.stats.presentesHoje || 0,
+            atividadesRecentes: [],
+            riskStudents: [],
+          })
+          setReportsData({ activeClasses: data.activeClasses ?? 0, presencaMensal: [] })
+        })
+        .catch((err) => {
+          console.error(err)
+          setError("Erro ao carregar dados. Verifique a conexão com o servidor.")
+        })
+    }
+  }, [user, canReports])
 
   // Aniversariantes do mês atual + próximos eventos do calendário
   useEffect(() => {

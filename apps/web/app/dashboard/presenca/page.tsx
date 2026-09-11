@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { RequirePermission } from "@/components/auth/require-permission"
 import { useAuth } from "@/components/auth/auth-provider"
-import { PERMISSIONS } from "@/lib/permissions"
+import { PERMISSIONS, hasPermission } from "@/lib/permissions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -83,8 +83,11 @@ export default function PresencaPage() {
         // Um professor só enxerga (e só pode registrar chamada em) as próprias turmas - outras
         // continuam existindo no sistema, só não aparecem pra ele aqui. O backend também recusa
         // a chamada de turmas de outros professores, então isso não é só cosmético.
-        const turmasDoUsuario = user?.role === "TEACHER"
-          ? turmasData.filter(t => t.professorId === user.id)
+        // Mesma regra do servidor (attendance/route.ts): quem NÃO gerencia turmas (sem a caixinha
+        // "turmas") só enxerga as próprias turmas. Baseado na permissão, não no rótulo do cargo.
+        const restritoAsProprias = !!user && user.role !== "ADMIN" && !hasPermission(user, PERMISSIONS.TURMAS)
+        const turmasDoUsuario = restritoAsProprias
+          ? turmasData.filter(t => t.professorId === user!.id)
           : turmasData
         const activeTurmas = turmasDoUsuario.filter(t => t.status === 'ativa')
         setTurmas(activeTurmas)

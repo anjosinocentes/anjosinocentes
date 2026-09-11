@@ -300,6 +300,15 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
     const auth = await requireAuth(req)
     if (auth instanceof NextResponse) return auth
 
+    // O /stats base (contagens agregadas do painel) é aberto a qualquer logado. Já os agregados
+    // detalhados (nomes de crianças, listas de risco, distribuição por curso) são dados de
+    // RELATÓRIO: exigem a permissão RELATORIOS (ADMIN sempre passa). Sem isso, um Professor
+    // poderia obter esses dados chamando a API direto, contornando o bloqueio do frontend.
+    const canReports = auth.role === "ADMIN" || !!auth.permissions?.includes(PERMISSIONS.RELATORIOS)
+    if ((fullPath === "stats/students" || fullPath === "stats/reports") && !canReports) {
+      return NextResponse.json({ error: "Sem permissão para acessar relatórios." }, { status: 403 })
+    }
+
     const studentsList = (await db.collection("students").find({}).toArray()).map(normalizeDoc)
     const attendancesList = (await db.collection("attendances").find({}).toArray()).map(normalizeDoc)
     const todayStr = new Date().toISOString().split("T")[0]

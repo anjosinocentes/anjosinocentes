@@ -37,7 +37,8 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    // Erros de tipo DEVEM quebrar o build de produção (não deixar bug de tipo ir para produção).
+    ignoreBuildErrors: false,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }]

@@ -252,8 +252,16 @@ export async function changePassword(payload: any): Promise<any> {
 }
 
 // Stats & Reports
-export async function getDashboardStats(): Promise<{ stats: { totalAlunos: number; presentesHoje: number; aulasDoDia: number }; weeklyPresenca: { dia: string; presentes: number; ausentes: number }[] }> {
-  return await request<{ stats: { totalAlunos: number; presentesHoje: number; aulasDoDia: number }; weeklyPresenca: { dia: string; presentes: number; ausentes: number }[] }>('/stats')
+// /stats (base) devolve só CONTAGENS agregadas não sensíveis (sem nomes de crianças) e é aberto
+// a qualquer usuário logado - usado no painel de quem NÃO tem permissão de Relatórios.
+export type DashboardStats = {
+  stats: { totalAlunos: number; presentesHoje: number; aulasDoDia: number }
+  weeklyPresenca: { dia: string; presentes: number; ausentes: number }[]
+  totalStudents?: number
+  activeClasses?: number
+}
+export async function getDashboardStats(): Promise<DashboardStats> {
+  return await request<DashboardStats>('/stats')
 }
 
 export async function getStudentsStats(): Promise<StudentStats> {

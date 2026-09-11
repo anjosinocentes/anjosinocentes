@@ -189,6 +189,9 @@ export async function getUserByToken(token: string) {
   const db = await getDb()
   const user = await db.collection("users").findOne({ id: decoded.sub })
   if (!user) throw new Error("User not found")
+  // Revogação imediata: se a conta foi DESATIVADA, o token existente para de valer na hora (não
+  // espera expirar). Todas as rotas autenticadas passam por aqui, então o acesso é cortado já.
+  if (user.active === false) throw new Error("Conta desativada")
   return withRolePermissions(sanitizeUser(normalizeDoc(user)))
 }
 

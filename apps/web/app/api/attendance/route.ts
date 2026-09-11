@@ -16,6 +16,15 @@ async function getTeacherClassIds(db: any, teacherId: string): Promise<string[]>
   return classes.map((c: any) => c.id)
 }
 
+// Quem fica RESTRITO às próprias turmas: qualquer usuário que NÃO seja gestor de turmas. Baseado
+// na PERMISSÃO (caixinha "turmas"), não no cargo/rótulo - assim a restrição não pode ser burlada
+// dando um rótulo diferente de "Professor" a alguém que só deveria lançar a chamada das suas turmas.
+// ADMIN e quem tem "turmas" (Coordenador/Secretário/Diretor por padrão) têm acesso irrestrito.
+function isRestrictedToOwnClasses(auth: { role: string; permissions?: string[] }): boolean {
+  if (auth.role === "ADMIN") return false
+  return !auth.permissions?.includes(PERMISSIONS.TURMAS)
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
@@ -30,7 +39,7 @@ export async function GET(req: NextRequest) {
     const db = await getDb()
 
     let teacherClassIds: string[] | null = null
-    if (auth.role === "TEACHER") {
+    if (isRestrictedToOwnClasses(auth)) {
       teacherClassIds = await getTeacherClassIds(db, auth.id)
       if (classId && !teacherClassIds.includes(classId)) {
         return forbidden("Você só pode consultar a presença das turmas que leciona.")
@@ -84,7 +93,7 @@ export async function POST(req: NextRequest) {
     const { date, classId, records } = parsed.data
     const db = await getDb()
 
-    if (auth.role === "TEACHER") {
+    if (isRestrictedToOwnClasses(auth)) {
       const allowedClassIds = await getTeacherClassIds(db, auth.id)
       if (!classId || !allowedClassIds.includes(classId)) {
         return forbidden("Você só pode registrar a presença das turmas que leciona.")
