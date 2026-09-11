@@ -24,7 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/components/auth/auth-provider"
-import { AccessDenied } from "@/components/auth/access-denied"
 import { Spinner } from "@/components/ui/spinner"
 
 const cargoLabels: Record<string, string> = {
@@ -88,6 +87,9 @@ export default function ConfiguracoesPage() {
   }, [user])
 
   useEffect(() => {
+    // Estatísticas gerais (aba Sistema) só para Administrador/Diretor - os demais perfis usam a
+    // página apenas para o próprio perfil/senha e nem chamam este endpoint (que exige RELATORIOS).
+    if (!user || (user.role !== "ADMIN" && user.role !== "DIRECTOR")) return
     const loadStats = async () => {
       try {
         const data = await getReportsStats()
@@ -97,7 +99,7 @@ export default function ConfiguracoesPage() {
       }
     }
     loadStats()
-  }, [])
+  }, [user])
 
   if (loading) {
     return (
@@ -111,9 +113,10 @@ export default function ConfiguracoesPage() {
     return null
   }
 
-  if (user.role !== "ADMIN" && user.role !== "DIRECTOR") {
-    return <AccessDenied />
-  }
+  // Configurações é AUTOATENDIMENTO: qualquer usuário logado acessa para editar o próprio perfil
+  // e trocar a própria senha (abas Perfil e Aparência). A aba "Sistema" (estatísticas gerais)
+  // continua restrita a Administrador/Diretor.
+  const canSeeSistema = user.role === "ADMIN" || user.role === "DIRECTOR"
 
   const handleSalvar = async () => {
     setSalvando(true)
@@ -182,7 +185,7 @@ export default function ConfiguracoesPage() {
       )}
 
       <Tabs defaultValue="perfil" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 h-auto gap-2 bg-transparent p-0">
+        <TabsList className={`grid w-full ${canSeeSistema ? "grid-cols-3" : "grid-cols-2"} h-auto gap-2 bg-transparent p-0`}>
           <TabsTrigger
             value="perfil"
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
@@ -197,6 +200,7 @@ export default function ConfiguracoesPage() {
             <Palette className="h-4 w-4 mr-2" />
             Aparência
           </TabsTrigger>
+          {canSeeSistema && (
           <TabsTrigger
             value="sistema"
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-border"
@@ -204,6 +208,7 @@ export default function ConfiguracoesPage() {
             <Settings className="h-4 w-4 mr-2" />
             Sistema
           </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Perfil */}
@@ -390,7 +395,8 @@ export default function ConfiguracoesPage() {
           </Card>
         </TabsContent>
 
-        {/* Sistema */}
+        {/* Sistema - só Administrador/Diretor */}
+        {canSeeSistema && (
         <TabsContent value="sistema" className="space-y-6">
 
           <Card>
@@ -441,6 +447,7 @@ export default function ConfiguracoesPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   )

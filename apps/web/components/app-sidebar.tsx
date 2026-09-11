@@ -78,7 +78,8 @@ const menuItems: Array<{ group: string; items: NavItem[] }> = [
 ]
 
 const bottomMenuItems: NavItem[] = [
-  { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings, roles: ["ADMIN", "DIRECTOR"] },
+  // Configurações é autoatendimento (perfil + senha) - visível a todos os perfis logados.
+  { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
   { href: "/dashboard/ajuda", label: "Ajuda", icon: HelpCircle },
 ]
 
