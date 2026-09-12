@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { getDb, normalizeDoc, loginUser, getUserByToken, sanitizeUser, getOwnedClassIds } from "@/lib/server/server-db"
-import { requireAuth, requirePermission, isTurmaManager, forbidden } from "@/lib/server/server-auth"
+import { requireAuth, requirePermission, requireTeamAdmin, isTurmaManager, forbidden } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { courseUpdateSchema, lessonSchema, firstZodError } from "@/lib/schemas"
 import { getPasswordValidationError } from "@/lib/password-policy"
@@ -138,7 +138,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
   if (fullPath.startsWith("users/teachers")) {
     const id = pathParts[2]
     if (method === "GET") {
-      const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
+      const auth = await requireTeamAdmin(req)
       if (auth instanceof NextResponse) return auth
       const docs = await db
         .collection("users")
@@ -146,7 +146,7 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
         .toArray()
       return NextResponse.json({ teachers: docs.map(normalizeDoc) })
     }
-    const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
+    const auth = await requireTeamAdmin(req)
     if (auth instanceof NextResponse) return auth
     if (method === "POST") {
       const body = await req.json()

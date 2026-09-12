@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 
 // Mesma regra de sensibilidade de DELETE /pdi/evolutions/:evolutionId: histórico é o propósito
@@ -11,6 +12,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const { id, eventId } = await props.params
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     const pdi = await db.collection("pdis").findOne({ studentId: id })
     if (!pdi) {

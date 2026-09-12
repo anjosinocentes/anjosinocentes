@@ -60,7 +60,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { AccessDenied } from "@/components/auth/access-denied"
 import { Spinner } from "@/components/ui/spinner"
 import { API_URL, type UserRole } from "@/lib/auth"
-import { PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions"
+import { PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, type Permission } from "@/lib/permissions"
 import { updateTeacher, deleteTeacher, resetPassword, getAuditLogs, getClasses, getStudents, type AuditLog } from "@/lib/api"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
@@ -96,7 +96,7 @@ const permissionOptions: Array<{ value: Permission; label: string; description: 
   { value: PERMISSIONS.COMUNICACAO, label: "Comunicação", description: "Visualizar avisos" },
   { value: PERMISSIONS.OFICINAS, label: "Oficinas", description: "Criar e editar oficinas" },
   { value: PERMISSIONS.RELATORIOS, label: "Relatórios", description: "Ver relatórios e estatísticas" },
-  { value: PERMISSIONS.EQUIPE, label: "Equipe", description: "Gerenciar colaboradores e suas permissões" },
+  // "Equipe" NÃO é uma caixinha: a gestão de colaboradores é exclusiva de Administrador/Diretor.
 ]
 
 // O preset de permissões por cargo vem de lib/permissions.ts (fonte única, usada também no
@@ -140,12 +140,10 @@ const renderRoleBadge = (role?: string) => {
 
 export default function ProfessoresPage() {
   const { user, loading } = useAuth()
-  // Acesso à gestão de Equipe agora é 100% pela caixinha "equipe" (cargo é só rótulo). Quem tem a
-  // permissão gerencia colaboradores - inclusive um Professor, se você liberar essa caixinha p/ ele.
-  const canAccess = hasPermission(user, PERMISSIONS.EQUIPE)
-  // Quem gerencia a Equipe pode atribuir qualquer cargo/rótulo e editar qualquer colaborador. A
-  // única trava (no servidor) é: só o ADMIN do sistema cria/atribui ADMIN (anti-escalação).
-  const isAdminOrDirector = canAccess
+  // Gestão de Equipe é EXCLUSIVA de Administrador/Diretor - não é liberada por permissão de módulo.
+  // O servidor também exige ADMIN/Diretor (requireTeamAdmin), então esconder aqui é só reflexo da UI.
+  const isAdminOrDirector = user?.role === "ADMIN" || user?.role === "DIRECTOR"
+  const canAccess = isAdminOrDirector
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)

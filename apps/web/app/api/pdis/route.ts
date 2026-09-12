@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDb } from "@/lib/server/server-db"
-import { requirePermission } from "@/lib/server/server-auth"
+import { getDb, getOwnedClassIds } from "@/lib/server/server-db"
+import { requirePermission, isTurmaManager } from "@/lib/server/server-auth"
+import { studentClassIds } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { getPdiArea } from "@/lib/pdi-constants"
 
@@ -12,6 +13,18 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
+    // Escopo por turma: gestor de turmas vê todas as crianças; um professor só as das suas turmas.
+    let allowedStudentIds: Set<string> | null = null
+    if (!isTurmaManager(auth)) {
+      const owned = await getOwnedClassIds(db, auth.id)
+      const students = await db
+        .collection("students")
+        .find({}, { projection: { id: 1, classId: 1, class_id: 1, classIds: 1, class_ids: 1 } })
+        .toArray()
+      allowedStudentIds = new Set(
+        (students as any[]).filter((s) => studentClassIds(s).some((c) => owned.has(c))).map((s) => s.id)
+      )
+    }
     // Ignora PDIs (e registros) na lixeira - só entram os ativos (deletedAt ausente/nulo).
     const [pdisList, trackingList, evolutionsList] = await Promise.all([
       db.collection("pdis").find({ deletedAt: null }).toArray(),
@@ -62,7 +75,8 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return NextResponse.json({ pdis: items })
+    const visibleItems = allowedStudentIds ? items.filter((i) => allowedStudentIds!.has(i.studentId)) : items
+    return NextResponse.json({ pdis: visibleItems })
   } catch (err: any) {
     console.error("Erro em GET /pdis:", err)
     return NextResponse.json({ error: "Não foi possível carregar a Central de PDIs." }, { status: 500 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { purgeExpiredTrash } from "@/lib/server/pdi-server-utils"
 
@@ -14,6 +15,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 })
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     await purgeExpiredTrash(db)
 
     // Só há PDI para restaurar se existir um na lixeira e nenhum ativo (evita dois PDIs na criança).

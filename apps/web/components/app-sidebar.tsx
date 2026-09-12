@@ -60,7 +60,7 @@ const menuItems: Array<{ group: string; items: NavItem[] }> = [
       { href: "/dashboard/oficinas", label: "Oficinas", icon: BookOpen, permission: PERMISSIONS.OFICINAS },
       { href: "/dashboard/turmas", label: "Turmas", icon: GraduationCap, permission: PERMISSIONS.TURMAS },
       { href: "/dashboard/presenca", label: "Presença", icon: ClipboardCheck, permission: PERMISSIONS.PRESENCA },
-      { href: "/dashboard/equipe", label: "Equipe", icon: UserCog, permission: PERMISSIONS.EQUIPE },
+      { href: "/dashboard/equipe", label: "Equipe", icon: UserCog, roles: ["ADMIN", "DIRECTOR"] },
     ],
   },
   {

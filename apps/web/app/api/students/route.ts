@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc } from "@/lib/server/server-db"
-import { requireAuth, requirePermission } from "@/lib/server/server-auth"
+import { requireAuth, requirePermission, isTurmaManager } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { studentSchema, firstZodError } from "@/lib/schemas"
 
@@ -48,13 +49,20 @@ export async function GET(req: NextRequest) {
   try {
     const db = await getDb()
     const docs = (await db.collection("students").find({}).toArray()).map(normalizeDoc)
-    const canSeeFull = auth.role === "ADMIN" || !!auth.permissions?.includes(PERMISSIONS.ALUNOS)
-    if (canSeeFull) {
-      return NextResponse.json({ students: docs })
+    // Quem enxerga TODAS as crianças: gestor de turmas (ADMIN ou permissão "turmas"). Ter só a
+    // permissão "alunos" NÃO dá acesso a todos os registros - o escopo continua sendo as próprias
+    // turmas (permissão de módulo != acesso a todos os dados do módulo).
+    const seesAll = isTurmaManager(auth)
+    // Dados SENSÍVEIS (CPF, endereço, telefone, responsável) só para quem tem "alunos"/ADMIN; os
+    // demais recebem versão enxuta (nome, turma, curso, foto).
+    const seesSensitive = auth.role === "ADMIN" || !!auth.permissions?.includes(PERMISSIONS.ALUNOS)
+    const shape = (list: any[]) => (seesSensitive ? list : list.map(toRosterView))
+    if (seesAll) {
+      return NextResponse.json({ students: shape(docs) })
     }
     const myClassIds = await getMyClassIds(db, auth.id)
-    const scoped = docs.filter((s: any) => studentInClasses(s, myClassIds)).map(toRosterView)
-    return NextResponse.json({ students: scoped })
+    const scoped = docs.filter((s: any) => studentInClasses(s, myClassIds))
+    return NextResponse.json({ students: shape(scoped) })
   } catch (err: any) {
     return NextResponse.json({ error: "Não foi possível carregar a lista de crianças." }, { status: 500 })
   }

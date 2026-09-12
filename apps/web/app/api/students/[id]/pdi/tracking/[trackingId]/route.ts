@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { pdiTrackingUpdateSchema, firstZodError } from "@/lib/schemas"
 import { PDI_AREAS, PDI_STATUSES, getPdiArea } from "@/lib/pdi-constants"
@@ -25,6 +26,8 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     // Filtra por studentId também: nunca permite editar o acompanhamento de uma criança a
     // partir do cadastro de outra, mesmo que o trackingId exista no banco.
@@ -65,6 +68,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const { id, trackingId } = await props.params
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     const existing = await db.collection("pdi_tracking").findOne({ id: trackingId, studentId: id })
     if (!existing) {

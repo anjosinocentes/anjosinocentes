@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { getPdiArea } from "@/lib/pdi-constants"
 
@@ -13,6 +14,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const { id, evolutionId } = await props.params
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     const existing = await db.collection("pdi_evolutions").findOne({ id: evolutionId, studentId: id })
     if (!existing) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { studentAttachmentUploadSchema, firstZodError } from "@/lib/schemas"
 import { validateAttachmentFiles } from "@/lib/attachment-validation"
@@ -29,6 +30,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   try {
     const { id } = await props.params
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     const docs = await db
       .collection("student_attachments")
       .find({ studentId: id })
@@ -53,6 +56,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     const student = await db.collection("students").findOne({
       id,

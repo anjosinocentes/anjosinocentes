@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { pdiEventSchema, firstZodError } from "@/lib/schemas"
 import { toEventView } from "@/lib/server/pdi-server-utils"
@@ -20,6 +21,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     const pdi = await db.collection("pdis").findOne({ studentId: id })
     if (!pdi) {
       return NextResponse.json({ error: "Esta criança ainda não possui um PDI cadastrado." }, { status: 404 })

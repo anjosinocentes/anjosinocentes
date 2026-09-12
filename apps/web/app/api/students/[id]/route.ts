@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { studentUpdateSchema, firstZodError } from "@/lib/schemas"
 
@@ -16,6 +17,9 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     }
     const body = parsed.data
     const db = await getDb()
+    // Escopo por turma: quem não é gestor só edita crianças das próprias turmas.
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     if (body.cpf) {
       const cpfDigits = body.cpf.replace(/\D/g, "")
@@ -50,6 +54,9 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     if (!existing) {
       return NextResponse.json({ error: "Criança não encontrada." }, { status: 404 })
     }
+    // Escopo por turma: quem não é gestor só exclui crianças das próprias turmas.
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     await db.collection("students").deleteOne({ id })
     // Evita anexos e PDI órfãos apontando para uma criança que não existe mais.
     await db.collection("student_attachments").deleteMany({ studentId: id })

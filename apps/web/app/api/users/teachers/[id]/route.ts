@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, normalizeDoc, sanitizeUser, logAudit } from "@/lib/server/server-db"
-import { requirePermission, canAssignRole } from "@/lib/server/server-auth"
-import { PERMISSIONS } from "@/lib/permissions"
+import { requireTeamAdmin, canAssignRole, permissionsActorCannotGrant } from "@/lib/server/server-auth"
 import { teacherUpdateSchema, firstZodError } from "@/lib/schemas"
 import type { UserRole } from "@/lib/auth"
 
@@ -22,7 +21,7 @@ async function countOtherActiveAdmins(db: any, excludeId: string) {
 }
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
+  const auth = await requireTeamAdmin(req)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params
@@ -42,6 +41,18 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
         { error: `Você não tem permissão para atribuir o cargo ${body.role}.` },
         { status: 403 }
       )
+    }
+
+    // "Não conceder o que não se tem": ao alterar as permissões de um colaborador, o ator só pode
+    // atribuir permissões que ele próprio possui (ADMIN pode qualquer uma).
+    if (Array.isArray((raw as any).permissions)) {
+      const cannotGrant = permissionsActorCannotGrant(auth, (raw as any).permissions)
+      if (cannotGrant.length > 0) {
+        return NextResponse.json(
+          { error: `Você não pode conceder permissões que você mesmo não possui: ${cannotGrant.join(", ")}.` },
+          { status: 403 }
+        )
+      }
     }
 
     // Trava adicional: Coordenador não pode sequer editar contas de Diretores/Admins.
@@ -99,7 +110,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
+  const auth = await requireTeamAdmin(req)
   if (auth instanceof NextResponse) return auth
   try {
     const { id } = await props.params

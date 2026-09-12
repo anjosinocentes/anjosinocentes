@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string; attachmentId: string }> }) {
@@ -9,6 +10,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const { id, attachmentId } = await props.params
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     // Filtra por studentId também: garante que um anexo só pode ser excluído a partir do
     // cadastro da própria criança, mesmo que o attachmentId exista no banco (isolamento entre
     // crianças - nunca confiar só no attachmentId da URL).

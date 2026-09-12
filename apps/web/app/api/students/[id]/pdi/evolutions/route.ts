@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { pdiEvolutionSchema, firstZodError } from "@/lib/schemas"
 import { validateAttachmentFiles } from "@/lib/attachment-validation"
@@ -26,6 +27,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     const docs = await db.collection("pdi_evolutions").find(query).sort({ data: -1, createdAt: -1 }).toArray()
     return NextResponse.json({ evolutions: docs.map(toEvolutionView) })
   } catch (err: any) {
@@ -60,6 +63,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     const pdi = await db.collection("pdis").findOne({ studentId: id })
     if (!pdi) {
       return NextResponse.json(

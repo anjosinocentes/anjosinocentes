@@ -87,14 +87,32 @@ export function isTurmaManager(user: AuthedUser): boolean {
   return user.role === "ADMIN" || !!user.permissions?.includes(PERMISSIONS.TURMAS)
 }
 
-// Regras de quem pode ATRIBUIR cada cargo ao criar/editar um colaborador. Quem chega até aqui já
-// tem a permissão EQUIPE (checada por requirePermission na rota). A única trava que resta é
-// ANTI-ESCALAÇÃO: apenas o super-usuário ADMIN pode criar/atribuir o cargo ADMIN - assim ninguém
-// com a caixinha "equipe" consegue se promover (ou promover outro) a administrador do sistema.
-// Os demais cargos são apenas rótulos, então qualquer um com EQUIPE pode atribuí-los.
+// Regras de quem pode ATRIBUIR cada cargo. A gestão de equipe é exclusiva de ADMIN/DIRETOR
+// (garantido por requireTeamAdmin na rota). ANTI-ESCALAÇÃO: apenas o ADMIN pode criar/atribuir o
+// cargo ADMIN; um Diretor pode atribuir os demais cargos, mas nunca ADMIN.
 export function canAssignRole(actorRole: UserRole, targetRole: UserRole): boolean {
   if (targetRole === "ADMIN") return actorRole === "ADMIN"
-  return true
+  return actorRole === "ADMIN" || actorRole === "DIRECTOR"
+}
+
+// "Não conceder o que não se tem": um ator só pode atribuir a outra pessoa permissões que ele
+// próprio possui. O ADMIN (super-usuário) pode conceder qualquer permissão. Retorna as permissões
+// que o ator NÃO poderia conceder (vazio = pode conceder todas as pedidas).
+export function permissionsActorCannotGrant(actor: AuthedUser, requested: string[]): string[] {
+  if (actor.role === "ADMIN") return []
+  const owned = new Set(actor.permissions || [])
+  return (requested || []).filter((p) => !owned.has(p))
+}
+
+// Gestão de equipe (criar/editar/excluir colaborador, cargos, permissões, logs de auditoria) é
+// EXCLUSIVA de ADMIN/DIRETOR - nunca liberada por uma permissão de módulo genérica.
+export async function requireTeamAdmin(req: Request): Promise<AuthedUser | NextResponse> {
+  return requireRole(req, "DIRECTOR") // hasRole já inclui ADMIN automaticamente
+}
+
+// Versão exportável da checagem de permissão do servidor (para uso fora dos require*).
+export function can(user: AuthedUser, permission: Permission): boolean {
+  return hasPermissionServer(user, permission)
 }
 
 // Combina requireAuth + checagem de papel. Retorna o usuário ou uma NextResponse de erro pronta pra devolver.
@@ -121,5 +139,43 @@ export async function requirePermission(req: Request, permission: Permission): P
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
   if (!hasPermissionServer(auth, permission)) return forbidden()
+  return auth
+}
+
+// -----------------------------------------------------------------------------
+// PONTO CENTRAL DE AUTORIZAÇÃO (deny-by-default)
+// -----------------------------------------------------------------------------
+// Toda rota protegida deve chamar `authorize(req, regra)` no início do handler. A regra declara
+// explicitamente o que é exigido (permissão, cargo e/ou um escopo por dono/turma). Se a regra não
+// exigir NADA (objeto vazio), o acesso é NEGADO - é impossível "esquecer" de proteger e deixar
+// aberto: sem regra explícita, ninguém entra. A autorização acontece sempre no servidor; o
+// frontend apenas reflete as permissões.
+export type AuthzRule = {
+  // Permissão de módulo exigida (caixinha). ADMIN sempre passa.
+  permission?: Permission
+  // Cargos permitidos (ADMIN sempre incluído). Use para áreas administrativas (equipe/auditoria).
+  roles?: UserRole[]
+  // Checagem de ESCOPO por registro/dono/turma (ex.: professor só na própria turma). Recebe o
+  // usuário autenticado e deve devolver uma NextResponse de erro (nega) ou null (libera).
+  scope?: (user: AuthedUser, req: Request) => Promise<NextResponse | null> | NextResponse | null
+}
+
+export async function authorize(req: Request, rule: AuthzRule): Promise<AuthedUser | NextResponse> {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
+  const declaresSomething = !!rule && (rule.permission !== undefined || (rule.roles && rule.roles.length > 0) || typeof rule.scope === "function")
+  if (!declaresSomething) {
+    // Deny-by-default: rota sem regra explícita nunca libera.
+    console.error("authorize(): rota protegida sem regra de autorização explícita - acesso negado.")
+    return forbidden("Acesso negado.")
+  }
+
+  if (rule.roles && rule.roles.length > 0 && !hasRole(auth, ...rule.roles)) return forbidden()
+  if (rule.permission !== undefined && !hasPermissionServer(auth, rule.permission)) return forbidden()
+  if (typeof rule.scope === "function") {
+    const denied = await rule.scope(auth, req)
+    if (denied) return denied
+  }
   return auth
 }

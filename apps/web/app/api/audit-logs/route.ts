@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
-import { requirePermission } from "@/lib/server/server-auth"
-import { PERMISSIONS } from "@/lib/permissions"
+import { requireTeamAdmin } from "@/lib/server/server-auth"
 
 // Alguns registros antigos foram gravados com um esquema diferente
 // (user_id/details/resource_id/timestamp em vez de userName/description/targetId/createdAt).
@@ -20,7 +19,7 @@ function normalizeAuditLog(doc: any) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePermission(req, PERMISSIONS.EQUIPE)
+  const auth = await requireTeamAdmin(req)
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()

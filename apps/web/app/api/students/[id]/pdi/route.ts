@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb, logAudit } from "@/lib/server/server-db"
 import { requirePermission } from "@/lib/server/server-auth"
+import { ensureStudentInScope } from "@/lib/server/scope"
 import { PERMISSIONS } from "@/lib/permissions"
 import { pdiInitialSchema, pdiUpdateSchema, firstZodError } from "@/lib/schemas"
 import { validateAttachmentFiles } from "@/lib/attachment-validation"
@@ -20,6 +21,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const { id } = await props.params
     if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 })
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     // Valida no servidor que a criança existe antes de expor o PDI (evita sondar IDs arbitrários).
     // A autorização de acesso é a permissão PDIS (verificada acima por requirePermission).
     const student = await findStudent(db, id)
@@ -59,6 +62,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
 
     const student = await findStudent(db, id)
     if (!student) {
@@ -139,6 +144,8 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     const pdi = await db.collection("pdis").findOne({ studentId: id, deletedAt: null })
     if (!pdi) {
       return NextResponse.json({ error: "Esta criança ainda não possui um PDI cadastrado." }, { status: 404 })
@@ -176,6 +183,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 })
 
     const db = await getDb()
+    const outOfScope = await ensureStudentInScope(db, auth, id)
+    if (outOfScope) return outOfScope
     await purgeExpiredTrash(db)
     const pdi = await db.collection("pdis").findOne({ studentId: id, deletedAt: null })
     if (!pdi) {
