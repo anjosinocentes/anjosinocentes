@@ -49,8 +49,11 @@ import {
 import { BookOpen } from "lucide-react"
 import { getLessonPlans, createLessonPlan, updateLessonPlan, deleteLessonPlan, getClasses } from "@/lib/api"
 import type { PlanoAula, Turma } from "@/lib/types"
+import { useAuth } from "@/components/auth/auth-provider"
+import { hasPermission } from "@/lib/permissions"
 
 export default function AulasPage() {
+  const { user } = useAuth()
   const [registros, setRegistros] = useState<PlanoAula[]>([])
   const [turmasList, setTurmasList] = useState<Turma[]>([])
   const [filtroTurma, setFiltroTurma] = useState("todas")
@@ -82,14 +85,19 @@ export default function AulasPage() {
           getClasses(),
         ])
         setRegistros(plans)
-        setTurmasList(classes.filter(c => c.status === "ativa"))
+        // Gestor de turmas (ADMIN ou permissão "turmas") escolhe qualquer turma. Um professor só
+        // pode registrar aula nas turmas que leciona (professorId = seu id) - espelha a trava do
+        // servidor, evitando oferecer no seletor uma turma que resultaria em 403 ao salvar.
+        const isTurmaManager = user?.role === "ADMIN" || hasPermission(user, PERMISSIONS.TURMAS)
+        const ativas = classes.filter(c => c.status === "ativa")
+        setTurmasList(isTurmaManager ? ativas : ativas.filter(c => c.professorId === user?.id))
       } catch (error) {
         console.error("Erro ao carregar dados iniciais do diário de aula:", error)
       }
     }
 
     loadInitialData()
-  }, [])
+  }, [user])
 
   const resetForm = () => {
     setForm({
