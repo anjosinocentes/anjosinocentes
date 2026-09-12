@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDb } from "@/lib/server/server-db"
-import { requirePermission } from "@/lib/server/server-auth"
+import { getDb, getOwnedClassIds, docClassId } from "@/lib/server/server-db"
+import { requirePermission, isTurmaManager, forbidden } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { lessonUpdateSchema, firstZodError } from "@/lib/schemas"
+import type { AuthedUser } from "@/lib/server/server-auth"
+
+// Um professor (não-gestor de turmas) só pode mexer em aulas das turmas que leciona. Gestores
+// (ADMIN ou quem tem a permissão "turmas") agem em qualquer turma.
+async function ensureCanManageLesson(db: any, auth: AuthedUser, lesson: any): Promise<NextResponse | null> {
+  if (isTurmaManager(auth)) return null
+  const owned = await getOwnedClassIds(db, auth.id)
+  const classId = docClassId(lesson)
+  if (!classId || !owned.has(classId)) {
+    return forbidden("Você só pode alterar aulas das turmas que leciona.")
+  }
+  return null
+}
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const auth = await requirePermission(req, PERMISSIONS.PLANO_AULA)
@@ -15,10 +28,22 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
       return NextResponse.json({ error: firstZodError(parsed.error) }, { status: 400 })
     }
     const db = await getDb()
-    await db.collection("lessons").updateOne(
-      { id },
-      { $set: parsed.data }
-    )
+    const lesson = await db.collection("lessons").findOne({ id })
+    if (!lesson) {
+      return NextResponse.json({ error: "Plano de aula não encontrado." }, { status: 404 })
+    }
+    const denied = await ensureCanManageLesson(db, auth, lesson)
+    if (denied) return denied
+
+    // Não deixa um professor MOVER a aula para uma turma que não é dele (troca de classId).
+    if (!isTurmaManager(auth) && raw?.classId && raw.classId !== docClassId(lesson)) {
+      const owned = await getOwnedClassIds(db, auth.id)
+      if (!owned.has(raw.classId)) {
+        return forbidden("Você só pode vincular a aula a turmas que leciona.")
+      }
+    }
+
+    await db.collection("lessons").updateOne({ id }, { $set: parsed.data })
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error("Erro em PUT /lessons/:id:", err)
@@ -33,10 +58,14 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const { id } = await props.params
     if (!id) return NextResponse.json({ error: "ID inválido." }, { status: 400 })
     const db = await getDb()
-    const result = await db.collection("lessons").deleteOne({ id })
-    if (!result.deletedCount) {
+    const lesson = await db.collection("lessons").findOne({ id })
+    if (!lesson) {
       return NextResponse.json({ error: "Plano de aula não encontrado." }, { status: 404 })
     }
+    const denied = await ensureCanManageLesson(db, auth, lesson)
+    if (denied) return denied
+
+    await db.collection("lessons").deleteOne({ id })
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error("Erro em DELETE /lessons/:id:", err)

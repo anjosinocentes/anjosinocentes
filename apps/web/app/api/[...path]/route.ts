@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
-import { getDb, normalizeDoc, loginUser, getUserByToken, sanitizeUser } from "@/lib/server/server-db"
-import { requireAuth, requirePermission } from "@/lib/server/server-auth"
+import { getDb, normalizeDoc, loginUser, getUserByToken, sanitizeUser, getOwnedClassIds } from "@/lib/server/server-db"
+import { requireAuth, requirePermission, isTurmaManager, forbidden } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { courseUpdateSchema, lessonSchema, firstZodError } from "@/lib/schemas"
 import { getPasswordValidationError } from "@/lib/password-policy"
@@ -227,6 +227,15 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       const parsed = lessonSchema.safeParse(raw)
       if (!parsed.success) {
         return NextResponse.json({ error: firstZodError(parsed.error) }, { status: 400 })
+      }
+      // Dono da turma: um professor (não-gestor) só cria aula para turmas que leciona - mesma
+      // regra que a Presença já aplica. Gestores (ADMIN/permissão "turmas") criam em qualquer turma.
+      const classId = (raw?.classId ?? raw?.class_id ?? null) as string | null
+      if (!isTurmaManager(auth)) {
+        const owned = await getOwnedClassIds(db, auth.id)
+        if (!classId || !owned.has(classId)) {
+          return forbidden("Você só pode criar aulas para turmas que leciona.")
+        }
       }
       const newId = crypto.randomUUID()
       const newDoc = { id: newId, ...parsed.data, created_at: new Date().toISOString() }

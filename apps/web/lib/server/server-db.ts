@@ -32,6 +32,21 @@ export async function getDb() {
   return createPgDb(DATABASE_URL as string)
 }
 
+// Ids das turmas que um usuário leciona (professorId = id do usuário). Usado para restringir
+// Presença/Aulas de um professor às próprias turmas (ele não pode agir em turmas de outros).
+export async function getOwnedClassIds(db: any, userId: string): Promise<Set<string>> {
+  const classes = await db
+    .collection("classes")
+    .find({ $or: [{ professorId: userId }, { professor_id: userId }] })
+    .toArray()
+  return new Set<string>(classes.map((c: any) => c.id))
+}
+
+// A qual turma (classId) um documento de aula/registro pertence, considerando nomes antigos/novos.
+export function docClassId(doc: any): string | null {
+  return doc?.classId ?? doc?.class_id ?? null
+}
+
 export function normalizeDoc(doc: any): any {
   if (!doc) return null
   const id = doc.id || (doc._id ? doc._id.toString() : crypto.randomUUID())

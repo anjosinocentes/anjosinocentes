@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getUserByToken } from "./server-db"
 import type { UserRole } from "../auth"
-import type { Permission } from "../permissions"
+import { PERMISSIONS, type Permission } from "../permissions"
 
 export type AuthedUser = {
   id: string
@@ -77,6 +77,14 @@ export async function requireAuth(req: Request): Promise<AuthedUser | NextRespon
 // ADMIN sempre tem acesso, igual ao middleware equivalente da API Express (requireRole).
 export function hasRole(user: AuthedUser, ...roles: UserRole[]) {
   return user.role === "ADMIN" || roles.includes(user.role)
+}
+
+// "Gestor de turmas": vê/edita Presença e Aulas de TODAS as turmas. É o ADMIN ou quem tem a
+// permissão de Turmas (Diretor/Coordenador/Secretário por padrão). Quem NÃO é gestor (o professor,
+// que tem só Presença/Aulas) fica restrito às turmas que leciona (professorId = seu id). Baseado na
+// PERMISSÃO, não no rótulo do cargo - assim a regra não é burlável trocando o cargo por outro nome.
+export function isTurmaManager(user: AuthedUser): boolean {
+  return user.role === "ADMIN" || !!user.permissions?.includes(PERMISSIONS.TURMAS)
 }
 
 // Regras de quem pode ATRIBUIR cada cargo ao criar/editar um colaborador. Quem chega até aqui já
