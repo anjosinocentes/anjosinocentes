@@ -3,6 +3,7 @@ import { getDb, getOwnedClassIds, docClassId } from "@/lib/server/server-db"
 import { requirePermission, isTurmaManager, forbidden } from "@/lib/server/server-auth"
 import { PERMISSIONS } from "@/lib/permissions"
 import { lessonUpdateSchema, firstZodError } from "@/lib/schemas"
+import { validateLessonFiles } from "@/lib/attachment-validation"
 import type { AuthedUser } from "@/lib/server/server-auth"
 
 // Um professor (não-gestor de turmas) só pode mexer em aulas das turmas que leciona. Gestores
@@ -26,6 +27,10 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     const parsed = lessonUpdateSchema.safeParse(raw)
     if (!parsed.success) {
       return NextResponse.json({ error: firstZodError(parsed.error) }, { status: 400 })
+    }
+    const filesCheck = validateLessonFiles((raw as any)?.files)
+    if (!filesCheck.ok) {
+      return NextResponse.json({ error: filesCheck.error }, { status: 400 })
     }
     const db = await getDb()
     const lesson = await db.collection("lessons").findOne({ id })

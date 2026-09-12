@@ -105,6 +105,13 @@ export interface Presenca {
   status: 'presente' | 'ausente'
 }
 
+// Material anexado a uma aula (slide, PDF, Word, imagem): guardado embutido como base64.
+export interface LessonFile {
+  name: string
+  type: string
+  data: string // data: URL (base64)
+}
+
 export interface PlanoAula {
   id: string
   data: string
@@ -114,7 +121,7 @@ export interface PlanoAula {
   disciplina: string
   conteudo: string
   observacoes: string
-  files?: string[]
+  files?: LessonFile[]
   createdAt: string
 }
 

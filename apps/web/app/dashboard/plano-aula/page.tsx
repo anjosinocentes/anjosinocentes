@@ -48,8 +48,18 @@ import {
 } from "lucide-react"
 import { BookOpen } from "lucide-react"
 import { getLessonPlans, createLessonPlan, updateLessonPlan, deleteLessonPlan, getClasses } from "@/lib/api"
-import type { PlanoAula, Turma } from "@/lib/types"
+import type { PlanoAula, Turma, LessonFile } from "@/lib/types"
 import { useAuth } from "@/components/auth/auth-provider"
+import {
+  ACCEPT_ATTRIBUTE,
+  checkFile,
+  formatFileSize,
+  getAttachmentCategory,
+  CATEGORY_LABELS,
+  MAX_LESSON_FILE_BYTES,
+  MAX_LESSON_TOTAL_BYTES,
+  MAX_LESSON_FILES,
+} from "@/lib/attachment-utils"
 import { hasPermission } from "@/lib/permissions"
 
 export default function AulasPage() {
@@ -74,7 +84,7 @@ export default function AulasPage() {
     disciplina: "",
     conteudo: "",
     observacoes: "",
-    files: [] as string[],
+    files: [] as LessonFile[],
   })
 
   useEffect(() => {
@@ -160,44 +170,68 @@ export default function AulasPage() {
   const [deleting, setDeleting] = useState(false)
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
+    const input = e.target
+    const files = input.files
     if (!files || files.length === 0) return
 
     setUploading(true)
-
     try {
-      const readAsDataURL = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
+      const readAsDataURL = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
           const reader = new FileReader()
           reader.onload = () => resolve(reader.result as string)
           reader.onerror = reject
           reader.readAsDataURL(file)
         })
-      }
 
-      const newFileUrls: string[] = []
+      const accepted: LessonFile[] = []
+      const rejected: string[] = []
+      // Começa do que já está no formulário para respeitar os limites de quantidade e total.
+      let count = form.files.length
+      let total = form.files.reduce((sum, f) => sum + Math.ceil((f.data.length - (f.data.indexOf(",") + 1)) * 0.75), 0)
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
+        // Valida tipo (lista branca de extensões) + tamanho por arquivo (3 MB).
+        const check = checkFile(file.name, file.type, file.size, MAX_LESSON_FILE_BYTES)
+        if (!check.ok) {
+          rejected.push(check.reason)
+          continue
+        }
+        if (count >= MAX_LESSON_FILES) {
+          rejected.push(`Limite de ${MAX_LESSON_FILES} materiais por aula atingido.`)
+          break
+        }
+        if (total + file.size > MAX_LESSON_TOTAL_BYTES) {
+          rejected.push(`"${file.name}" excede o total de ${formatFileSize(MAX_LESSON_TOTAL_BYTES)} em materiais. Para arquivos maiores, compartilhe por link.`)
+          continue
+        }
         const dataUrl = await readAsDataURL(file)
-        newFileUrls.push(dataUrl)
+        accepted.push({ name: file.name, type: file.type, data: dataUrl })
+        count += 1
+        total += file.size
       }
 
-      setForm((prev) => ({
-        ...prev,
-        files: [...prev.files, ...newFileUrls],
-      }))
+      if (accepted.length > 0) {
+        setForm((prev) => ({ ...prev, files: [...prev.files, ...accepted] }))
+      }
+      if (rejected.length > 0) {
+        alert(rejected.join("\n"))
+      }
     } catch (error) {
       console.error("Erro no upload:", error)
       alert("Erro ao ler os arquivos. Tente novamente.")
     } finally {
       setUploading(false)
+      // Permite reanexar o mesmo arquivo depois de removê-lo (senão o onChange não dispara de novo).
+      input.value = ""
     }
   }
 
-  const handleRemoveFile = (fileUrl: string) => {
+  const handleRemoveFile = (index: number) => {
     setForm((prev) => ({
       ...prev,
-      files: prev.files.filter((url) => url !== fileUrl),
+      files: prev.files.filter((_, i) => i !== index),
     }))
   }
 
@@ -369,6 +403,7 @@ export default function AulasPage() {
                       <Input
                         type="file"
                         multiple
+                        accept={ACCEPT_ATTRIBUTE}
                         onChange={handleFileUpload}
                         disabled={uploading}
                         className="hidden"
@@ -379,11 +414,13 @@ export default function AulasPage() {
                         variant="outline"
                         onClick={() => document.getElementById("file-upload-input")?.click()}
                         disabled={uploading}
-                        className="border-dashed border-2 hover:bg-muted py-6 flex flex-col items-center justify-center gap-1 w-full"
+                        className="border-dashed border-2 hover:bg-muted h-auto py-6 flex flex-col items-center justify-center gap-1 w-full whitespace-normal"
                       >
                         <Plus className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">Anexar Materiais</span>
-                        <span className="text-xs text-muted-foreground">Slides, PDFs, imagens, documentos</span>
+                        <span className="text-xs text-muted-foreground text-center">
+                          PDF, Word, Excel, PowerPoint, imagens · até {formatFileSize(MAX_LESSON_FILE_BYTES)} por arquivo ({formatFileSize(MAX_LESSON_TOTAL_BYTES)} no total)
+                        </span>
                       </Button>
                     </div>
 
@@ -393,20 +430,21 @@ export default function AulasPage() {
 
                     {form.files && form.files.length > 0 && (
                       <div className="grid grid-cols-1 gap-2 mt-1">
-                        {form.files.map((fileUrl, index) => {
-                          const fileName = fileUrl.split("/").pop() || `Arquivo ${index + 1}`
+                        {form.files.map((file, index) => {
+                          const categoria = CATEGORY_LABELS[getAttachmentCategory(file.name, file.type)]
                           return (
-                            <div key={fileUrl} className="flex items-center justify-between p-2 bg-muted/40 rounded-lg border border-border">
-                              <div className="flex items-center gap-2 truncate">
+                            <div key={`${file.name}-${index}`} className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded-lg border border-border">
+                              <div className="flex items-center gap-2 min-w-0">
                                 <FileText className="h-4 w-4 text-primary shrink-0" />
-                                <span className="text-xs truncate">{fileName}</span>
+                                <span className="text-xs truncate">{file.name}</span>
+                                <span className="text-[10px] text-muted-foreground shrink-0 uppercase">{categoria}</span>
                               </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleRemoveFile(fileUrl)}
-                                className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                onClick={() => handleRemoveFile(index)}
+                                className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
@@ -662,10 +700,9 @@ export default function AulasPage() {
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-1.5">Materiais da Aula</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {viewingRegistro.files.map((fileUrl: string, index: number) => {
-                      const isDataUrl = fileUrl.startsWith("data:")
-                      const fileName = isDataUrl ? `Material ${index + 1}` : (fileUrl.split("/").pop() || `Arquivo ${index + 1}`)
-                      const downloadUrl = fileUrl
+                    {viewingRegistro.files.map((file: LessonFile, index: number) => {
+                      const fileName = file.name || `Material ${index + 1}`
+                      const downloadUrl = file.data
                       return (
                         <a
                           key={index}

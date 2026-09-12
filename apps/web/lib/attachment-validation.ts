@@ -2,7 +2,15 @@
 // só no frontend) e adiciona uma camada que o cliente não consegue fazer com segurança:
 // conferir a assinatura real (magic bytes) do arquivo, para pegar um executável ou script
 // disfarçado de imagem/documento só pela extensão.
-import { getFileExtension, checkAttachmentSet, formatFileSize, MAX_FILE_SIZE_BYTES } from "./attachment-utils"
+import {
+  getFileExtension,
+  checkAttachmentSet,
+  formatFileSize,
+  MAX_FILE_SIZE_BYTES,
+  MAX_LESSON_FILE_BYTES,
+  MAX_LESSON_TOTAL_BYTES,
+  MAX_LESSON_FILES,
+} from "./attachment-utils"
 
 type IncomingAttachment = { name?: string; type?: string; data?: string; size?: number }
 
@@ -105,4 +113,27 @@ export function validateAttachmentsServerSide(attachments: unknown): { ok: true 
   if (!countCheck.ok) return { ok: false, error: countCheck.reason }
 
   return validateAttachmentFiles(list)
+}
+
+// Materiais de AULA: valida cada arquivo (tipo real via magic bytes + limite por arquivo de 3 MB)
+// e o total combinado + quantidade. Rodado no servidor (nunca confiar só no cliente), evitando que
+// um Word/PDF grande embutido em base64 estoure o limite de corpo da requisição e "quebre" o salvamento.
+export function validateLessonFiles(files: unknown): { ok: true } | { ok: false; error: string } {
+  if (files === undefined || files === null) return { ok: true }
+  if (!Array.isArray(files)) return { ok: false, error: "Formato de materiais inválido." }
+  if (files.length > MAX_LESSON_FILES) {
+    return { ok: false, error: `Máximo de ${MAX_LESSON_FILES} materiais por aula.` }
+  }
+  const perFile = validateAttachmentFiles(files, MAX_LESSON_FILE_BYTES)
+  if (!perFile.ok) return perFile
+
+  let total = 0
+  for (const f of files as IncomingAttachment[]) {
+    const buf = f.data ? decodeDataUrl(f.data) : null
+    if (buf) total += buf.length
+  }
+  if (total > MAX_LESSON_TOTAL_BYTES) {
+    return { ok: false, error: `O total dos materiais excede ${formatFileSize(MAX_LESSON_TOTAL_BYTES)}. Remova algum arquivo ou compartilhe por link.` }
+  }
+  return { ok: true }
 }

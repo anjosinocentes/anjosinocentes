@@ -12,6 +12,14 @@ export const MAX_FILES_PER_ANNOUNCEMENT = 10
 export const MAX_STUDENT_ATTACHMENTS = 5
 export const MAX_STUDENT_ATTACHMENT_FILE_BYTES = 10 * 1024 * 1024 // 10 MB por arquivo
 
+// Materiais de AULA (plano de aula): vão embutidos como base64 dentro do próprio documento da
+// aula e a aula inteira é enviada numa única requisição. A Vercel limita o corpo da requisição a
+// ~4.5 MB, então o TOTAL (todos os arquivos + os campos da aula, já contando o inchaço do base64
+// de ~33%) precisa ficar bem abaixo disso - por isso os limites aqui são menores que os de aluno.
+export const MAX_LESSON_FILE_BYTES = 3 * 1024 * 1024 // 3 MB por arquivo
+export const MAX_LESSON_TOTAL_BYTES = 3 * 1024 * 1024 // 3 MB somando todos os materiais da aula
+export const MAX_LESSON_FILES = 8
+
 type ExtensionConfig = {
   category: AttachmentCategory
   mimeTypes: string[]

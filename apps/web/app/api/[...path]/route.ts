@@ -5,6 +5,7 @@ import { requireAuth, requirePermission, requireTeamAdmin, isTurmaManager, forbi
 import { PERMISSIONS } from "@/lib/permissions"
 import { courseUpdateSchema, lessonSchema, firstZodError } from "@/lib/schemas"
 import { getPasswordValidationError } from "@/lib/password-policy"
+import { validateLessonFiles } from "@/lib/attachment-validation"
 
 function normalizeText(str: string) {
   return (str || "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -227,6 +228,10 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
       const parsed = lessonSchema.safeParse(raw)
       if (!parsed.success) {
         return NextResponse.json({ error: firstZodError(parsed.error) }, { status: 400 })
+      }
+      const filesCheck = validateLessonFiles((raw as any)?.files)
+      if (!filesCheck.ok) {
+        return NextResponse.json({ error: filesCheck.error }, { status: 400 })
       }
       // Dono da turma: um professor (não-gestor) só cria aula para turmas que leciona - mesma
       // regra que a Presença já aplica. Gestores (ADMIN/permissão "turmas") criam em qualquer turma.
