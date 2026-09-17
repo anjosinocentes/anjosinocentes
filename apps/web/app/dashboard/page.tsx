@@ -356,21 +356,21 @@ export default function DashboardPage() {
 
       {/* Risk Students Alerts */}
       {dashboardData && dashboardData.riskStudents && dashboardData.riskStudents.length > 0 && (
-        <Card className="border-destructive/30 bg-destructive/5 dark:bg-destructive/10">
+        <Card className="border-amber-500/25 bg-amber-500/5">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2 text-destructive font-semibold">
+            <div className="flex items-center gap-2 text-amber-500 font-semibold">
               <AlertTriangle className="h-5 w-5" />
-              <CardTitle className="text-lg">Crianças Necessitando de Atenção Acadêmica</CardTitle>
+              <CardTitle className="text-lg text-amber-500">Crianças Necessitando de Atenção Acadêmica</CardTitle>
             </div>
             <CardDescription className="text-xs">
               Crianças com frequência abaixo de 75%
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="rounded-md border border-destructive/20 overflow-x-auto bg-card/60">
+            <div className="rounded-md border border-border/40 overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-destructive/10 hover:bg-destructive/15">
+                  <TableRow className="bg-muted/40 hover:bg-muted/60">
                     <TableHead className="font-semibold text-foreground">Criança</TableHead>
                     <TableHead className="font-semibold text-foreground">Oficina</TableHead>
                     <TableHead className="font-semibold text-foreground">Frequência (%)</TableHead>
@@ -379,12 +379,12 @@ export default function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {dashboardData.riskStudents.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-destructive/5 border-destructive/10">
+                    <TableRow key={student.id} className="hover:bg-muted/20 border-border/30">
                       <TableCell className="font-medium text-foreground">{student.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{student.curso}</TableCell>
                       <TableCell>
                         {student.frequencia !== null ? (
-                          <span className={`font-bold text-sm ${student.frequencia >= 75 ? "text-success" : "text-destructive"}`}>
+                          <span className={`font-semibold text-sm ${student.frequencia >= 75 ? "text-emerald-500" : "text-amber-500"}`}>
                             {student.frequencia}%
                           </span>
                         ) : (
@@ -392,7 +392,7 @@ export default function DashboardPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex px-2.5 py-0.5 rounded bg-destructive/15 text-destructive font-bold text-xs border border-destructive/25">
+                        <span className="inline-flex px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium text-xs border border-amber-500/20">
                           {student.motivo}
                         </span>
                       </TableCell>
