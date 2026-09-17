@@ -19,13 +19,15 @@ export function escapeHtml(value: unknown): string {
 }
 
 const BASE_STYLES = `
-  body { font-family: sans-serif; padding: 40px; color: #333; }
+  body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
   h1 { color: #f97316; margin-bottom: 5px; }
   h2 { color: #555; font-size: 16px; margin-top: 0; margin-bottom: 20px; font-weight: normal; }
-  h3 { margin-top: 32px; margin-bottom: 8px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th { background: #f3f4f6; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; }
-  .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #f97316; padding-bottom: 16px; margin-bottom: 20px; }
+  h3 { margin-top: 28px; margin-bottom: 12px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+  p { margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 16px; }
+  th { background: #f3f4f6; padding: 10px 8px; text-align: left; border-bottom: 2px solid #ddd; }
+  td { padding: 10px 8px; border-bottom: 1px solid #ddd; }
+  .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #f97316; padding-bottom: 16px; margin-bottom: 24px; }
   .report-header img { height: 40px; width: auto; }
   .report-header h1, .report-header h2 { margin: 0; }
   .footer { margin-top: 50px; font-size: 12px; text-align: center; color: #888; border-top: 1px solid #eee; padding-top: 20px; }
@@ -190,48 +192,52 @@ export async function buildReportPdf({
 
   for (const block of blocks) {
     if (block.type === "heading") {
-      ensureSpace(12)
+      cursorY += 10
+      ensureSpace(16)
+      doc.setDrawColor(221, 221, 221)
+      doc.setLineWidth(0.2)
+      doc.line(marginX, cursorY - 4, pageWidth - marginX, cursorY - 4)
       doc.setTextColor(51, 51, 51)
       doc.setFontSize(13)
       doc.setFont("helvetica", "bold")
       doc.text(block.text, marginX, cursorY)
-      cursorY += 4
+      cursorY += 7
     } else if (block.type === "text") {
       doc.setTextColor(51, 51, 51)
       doc.setFontSize(11)
       doc.setFont("helvetica", "normal")
       const lines: string[] = doc.splitTextToSize(block.text, contentWidth)
-      // Escreve linha a linha, paginando quando chega ao fim da página.
-      cursorY += 4
+      cursorY += 2
       for (const line of lines) {
-        ensureSpace(5)
+        ensureSpace(6)
         doc.text(line, marginX, cursorY)
-        cursorY += 5
+        cursorY += 5.5
       }
+      cursorY += 2
     } else if (block.type === "keyValue") {
       autoTable(doc, {
-        startY: cursorY + 2,
+        startY: cursorY + 4,
         margin: { left: marginX, right: marginX },
         theme: "grid",
-        styles: { fontSize: 10, cellPadding: 2.5, textColor: [51, 51, 51], lineColor: [221, 221, 221] },
+        styles: { fontSize: 10, cellPadding: 3.5, textColor: [51, 51, 51], lineColor: [221, 221, 221] },
         columnStyles: {
           0: { fontStyle: "bold", cellWidth: contentWidth * 0.35, fillColor: [243, 244, 246] },
           1: { cellWidth: contentWidth * 0.65 },
         },
         body: block.rows.map(([k, v]) => [k, v]),
       })
-      cursorY = (doc as any).lastAutoTable.finalY + 6
+      cursorY = (doc as any).lastAutoTable.finalY + 8
     } else if (block.type === "table") {
       autoTable(doc, {
-        startY: cursorY + 2,
+        startY: cursorY + 4,
         margin: { left: marginX, right: marginX },
         theme: "grid",
         headStyles: { fillColor: [243, 244, 246], textColor: [51, 51, 51], fontStyle: "bold" },
-        styles: { fontSize: 10, cellPadding: 2.5, textColor: [51, 51, 51], lineColor: [221, 221, 221] },
+        styles: { fontSize: 10, cellPadding: 3.5, textColor: [51, 51, 51], lineColor: [221, 221, 221] },
         head: [block.head],
         body: block.rows,
       })
-      cursorY = (doc as any).lastAutoTable.finalY + 6
+      cursorY = (doc as any).lastAutoTable.finalY + 8
     }
   }
 
