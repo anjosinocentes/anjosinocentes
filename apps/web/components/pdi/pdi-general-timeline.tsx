@@ -48,10 +48,11 @@ export function PdiGeneralTimeline({
             <button
               type="button"
               onClick={() => onDeleteEvent(item.eventId!)}
-              className="text-muted-foreground hover:text-destructive shrink-0"
+              className="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/30 transition-colors"
               aria-label="Excluir marco"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 w-3" />
+              Excluir
             </button>
           )}
         </div>

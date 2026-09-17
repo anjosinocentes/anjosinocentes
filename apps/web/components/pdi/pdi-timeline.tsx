@@ -65,7 +65,7 @@ export function PdiTimeline({
                 <button
                   type="button"
                   onClick={() => onDelete(ev)}
-                  className="text-[11px] text-destructive hover:underline flex items-center gap-1"
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/30 transition-colors"
                 >
                   <Trash2 className="h-3 w-3" />
                   Excluir
