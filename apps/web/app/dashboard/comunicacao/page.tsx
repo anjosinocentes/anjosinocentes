@@ -286,11 +286,11 @@ export default function ComunicacaoPage() {
       <div className="space-y-6 pt-12 md:pt-0 animate-in fade-in duration-300">
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border/40">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2"><Megaphone className="h-7 w-7 text-primary" />Comunicação Interna</h1>
-            <p className="text-muted-foreground mt-1">
-              Consulte e acompanhe os avisos e comunicados importantes para a equipe
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3"><Megaphone className="h-7 w-7 text-primary" />Comunicação Interna</h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              Avisos e comunicados importantes para a equipe
             </p>
           </div>
 
@@ -466,11 +466,11 @@ export default function ComunicacaoPage() {
               placeholder="Buscar por título ou conteúdo..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-10"
+              className="pl-10 bg-muted/30"
             />
           </div>
           <Select value={filtroTipo} onValueChange={(v: "todos" | AnnouncementTipo) => setFiltroTipo(v)}>
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger className="w-full sm:w-48 bg-muted/30">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -483,23 +483,21 @@ export default function ComunicacaoPage() {
         </div>
 
         {/* Notice Board */}
-        <div className="max-w-4xl space-y-4">
+        <div className="max-w-4xl space-y-5">
           {announcementsFiltrados.length === 0 ? (
-            <Card className="border-border/50 bg-card/30">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <Megaphone className="h-12 w-12 mx-auto mb-4 opacity-30 text-primary" />
-                <p className="font-semibold text-lg">
-                  {announcements.length === 0 ? "Mural de avisos vazio" : "Nenhum aviso encontrado"}
-                </p>
-                <p className="text-sm mt-1">
-                  {announcements.length === 0
-                    ? (isDirector
-                      ? 'Clique em "Publicar Aviso" para enviar o primeiro comunicado.'
-                      : "Não há comunicados internos publicados no momento.")
-                    : "Tente ajustar a busca ou o filtro de tipo."}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 py-16 text-center">
+              <Megaphone className="h-14 w-14 mx-auto mb-5 text-muted-foreground/30" />
+              <p className="font-semibold text-lg text-foreground/70">
+                {announcements.length === 0 ? "Mural de avisos vazio" : "Nenhum aviso encontrado"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm mx-auto">
+                {announcements.length === 0
+                  ? (isDirector
+                    ? 'Clique em "Publicar Aviso" para enviar o primeiro comunicado.'
+                    : "Não há comunicados internos publicados no momento.")
+                  : "Tente ajustar a busca ou o filtro de tipo."}
+              </p>
+            </div>
           ) : (
             announcementsFiltrados.map(announcement => {
               const tipo = tipoConfig[announcement.tipo || "informativo"]
@@ -514,16 +512,16 @@ export default function ComunicacaoPage() {
               return (
                 <Card
                   key={announcement.id}
-                  className={`border-border/50 border-l-4 ${tipo.border} hover:shadow-md transition-all duration-300 bg-card/30`}
+                  className={`border-border/40 border-l-4 ${tipo.border} hover:border-border/60 transition-all duration-200 bg-card`}
                 >
-                  <CardHeader className="pb-3 border-b border-border/30">
-                    <div className="flex items-start gap-4">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20 shrink-0 select-none">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start gap-3.5">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center font-bold text-sm border border-primary/15 shrink-0 select-none">
                         {announcement.author?.name ? getInitials(announcement.author.name) : "AI"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                          <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
                             <h3 className="font-bold text-foreground text-base sm:text-lg truncate">
                               {announcement.title}
                             </h3>
@@ -533,16 +531,16 @@ export default function ComunicacaoPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="flex items-center text-[10px] sm:text-xs text-muted-foreground font-medium bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
-                              <Calendar className="h-3 w-3 mr-1" />
+                            <span className="flex items-center text-[10px] sm:text-xs text-muted-foreground/80 font-medium">
+                              <Calendar className="h-3 w-3 mr-1 opacity-60" />
                               {formatDate(announcement.createdAt)}
                             </span>
                             {isDirector && (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-0.5 ml-1">
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80"
                                   onClick={() => handleEdit(announcement)}
                                   title="Editar aviso"
                                 >
@@ -562,26 +560,26 @@ export default function ComunicacaoPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs font-semibold text-foreground truncate">
+                          <p className="text-xs font-medium text-foreground/80 truncate">
                             {announcement.author?.name || "Administrador"}
                           </p>
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-primary/15 text-primary rounded border border-primary/20">
+                          <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 bg-muted/60 text-muted-foreground rounded border border-border/40">
                             {roleLabels[announcement.author?.role || ""] || "Colaborador"}
                           </span>
                         </div>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-4 space-y-4">
-                    <div>
-                      <p className="text-sm sm:text-base text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  <CardContent className="pt-0 pb-5 space-y-4">
+                    <div className="border-t border-border/20 pt-4">
+                      <p className="text-sm sm:text-[15px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
                         {displayBody}
                       </p>
                       {isLong && (
                         <button
                           type="button"
                           onClick={() => toggleExpanded(announcement.id)}
-                          className="text-xs font-semibold text-primary hover:underline mt-1"
+                          className="text-xs font-semibold text-primary hover:text-primary/80 mt-2 transition-colors"
                         >
                           {isExpanded ? "Ver menos" : "Ver mais"}
                         </button>
@@ -590,7 +588,7 @@ export default function ComunicacaoPage() {
 
                     {/* Display Attachments */}
                     {announcement.attachments && announcement.attachments.length > 0 && (
-                      <div className="pt-3 border-t border-border/40">
+                      <div className="pt-3 border-t border-border/20">
                         <AttachmentDisplay attachments={announcement.attachments} />
                       </div>
                     )}
