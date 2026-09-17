@@ -64,7 +64,6 @@ interface DashboardData {
     id: string
     nome: string
     curso: string
-    mediaNotas: number | null
     frequencia: number | null
     motivo: string
   }>
@@ -364,7 +363,7 @@ export default function DashboardPage() {
               <CardTitle className="text-lg">Crianças Necessitando de Atenção Acadêmica</CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Crianças com frequência abaixo de 75% ou média de notas inferior a 7.0
+              Crianças com frequência abaixo de 75%
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0">
@@ -374,7 +373,6 @@ export default function DashboardPage() {
                   <TableRow className="bg-destructive/10 hover:bg-destructive/15">
                     <TableHead className="font-semibold text-foreground">Criança</TableHead>
                     <TableHead className="font-semibold text-foreground">Oficina</TableHead>
-                    <TableHead className="font-semibold text-foreground">Média Notas (0-10)</TableHead>
                     <TableHead className="font-semibold text-foreground">Frequência (%)</TableHead>
                     <TableHead className="font-semibold text-foreground">Motivo do Alerta</TableHead>
                   </TableRow>
@@ -384,15 +382,6 @@ export default function DashboardPage() {
                     <TableRow key={student.id} className="hover:bg-destructive/5 border-destructive/10">
                       <TableCell className="font-medium text-foreground">{student.nome}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{student.curso}</TableCell>
-                      <TableCell>
-                        {student.mediaNotas !== null ? (
-                          <span className={`font-bold text-sm ${student.mediaNotas >= 7.0 ? "text-success" : "text-destructive"}`}>
-                            {student.mediaNotas}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Sem notas</span>
-                        )}
-                      </TableCell>
                       <TableCell>
                         {student.frequencia !== null ? (
                           <span className={`font-bold text-sm ${student.frequencia >= 75 ? "text-success" : "text-destructive"}`}>

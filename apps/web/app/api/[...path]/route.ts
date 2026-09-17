@@ -364,7 +364,6 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
             id: s.id,
             nome: s.nome,
             curso: s.curso,
-            mediaNotas: null,
             frequencia: attendanceRate,
             motivo: "Frequência Baixa",
           }

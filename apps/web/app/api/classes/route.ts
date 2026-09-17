@@ -9,8 +9,30 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()
-    const docs = await db.collection("classes").find({}).toArray()
-    const classes = docs.map(normalizeDoc)
+    const [classDocs, studentDocs] = await Promise.all([
+      db.collection("classes").find({}).toArray(),
+      db.collection("students").find({}, { projection: { classId: 1, class_id: 1, classIds: 1, class_ids: 1 } }).toArray(),
+    ])
+
+    const countByClass = new Map<string, number>()
+    for (const s of studentDocs) {
+      const ids: string[] = []
+      if (s.classId) ids.push(s.classId)
+      if (s.class_id && s.class_id !== s.classId) ids.push(s.class_id)
+      for (const id of (s.classIds || s.class_ids || [])) {
+        if (!ids.includes(id)) ids.push(id)
+      }
+      for (const id of ids) {
+        countByClass.set(id, (countByClass.get(id) || 0) + 1)
+      }
+    }
+
+    const classes = classDocs.map(doc => {
+      const normalized = normalizeDoc(doc)
+      normalized.alunosMatriculados = countByClass.get(normalized.id) || 0
+      normalized.alunos_matriculados = normalized.alunosMatriculados
+      return normalized
+    })
     return NextResponse.json({ classes })
   } catch (err: any) {
     console.error("Erro em GET /classes:", err)

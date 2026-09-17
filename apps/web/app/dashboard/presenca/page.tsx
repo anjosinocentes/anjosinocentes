@@ -417,9 +417,15 @@ export default function PresencaPage() {
                           >
                             <TableCell className="font-medium text-foreground">{aluno.nome}</TableCell>
                             <TableCell className="hidden sm:table-cell">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                                {aluno.curso}
-                              </span>
+                              {turmas.filter(t => pertenceATurma(aluno, t.id)).map(t => (
+                                <span key={t.id} className={`inline-block mr-1 mb-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                  t.id === selectedTurmaId
+                                    ? "bg-primary/10 text-primary border-primary/20"
+                                    : "bg-muted text-muted-foreground border-border"
+                                }`}>
+                                  {t.nome}
+                                </span>
+                              ))}
                             </TableCell>
                             <TableCell className="text-center">
                               <span 
