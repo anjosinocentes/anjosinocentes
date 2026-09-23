@@ -78,9 +78,9 @@ export default function AjudaPage() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
-      <div className="text-center max-w-2xl mx-auto">
+      <div className="text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
           <HelpCircle className="h-8 w-8 text-primary" />
         </div>
@@ -91,7 +91,7 @@ export default function AjudaPage() {
       </div>
 
       {/* Busca */}
-      <div className="max-w-xl mx-auto">
+      <div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -104,7 +104,7 @@ export default function AjudaPage() {
       </div>
 
       {/* Guias Rápidos */}
-      <div className="grid sm:grid-cols-2 max-w-2xl mx-auto w-full gap-4">
+      <div className="grid sm:grid-cols-2 w-full gap-4">
         {guiasRapidos.map((guia) => {
           const Icon = guia.icon
           return (
