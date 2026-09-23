@@ -52,7 +52,6 @@ import {
   UserCheck,
   Download,
   History,
-  BarChart3,
   Layers,
   AlertTriangle 
 } from "lucide-react"
@@ -61,9 +60,8 @@ import { AccessDenied } from "@/components/auth/access-denied"
 import { Spinner } from "@/components/ui/spinner"
 import { API_URL, type UserRole } from "@/lib/auth"
 import { PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, type Permission } from "@/lib/permissions"
-import { updateTeacher, deleteTeacher, resetPassword, getAuditLogs, getClasses, getStudents, type AuditLog } from "@/lib/api"
+import { updateTeacher, deleteTeacher, resetPassword, getAuditLogs, getClasses, type AuditLog } from "@/lib/api"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import type { Turma } from "@/lib/types"
 import { PASSWORD_REQUIREMENTS, getPasswordValidationError } from "@/lib/password-policy"
 
@@ -176,7 +174,6 @@ export default function ProfessoresPage() {
   // Additional states for Management panel
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [classes, setClasses] = useState<Turma[]>([])
-  const [studentsCount, setStudentsCount] = useState(0)
 
   const [searchQuery, setSearchQuery] = useState("")
   const [filterAction, setFilterAction] = useState("ALL")
@@ -208,7 +205,6 @@ export default function ProfessoresPage() {
     }
 
     getClasses().then(setClasses).catch(err => console.error("Error loading classes:", err))
-    getStudents().then(list => setStudentsCount(list.length)).catch(err => console.error("Error loading students count:", err))
   }
 
   useEffect(() => {
@@ -659,18 +655,14 @@ export default function ProfessoresPage() {
         </Alert>
       )}
 
-      <Tabs defaultValue={canAccess ? "colaboradores" : "estatisticas"} className="w-full">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2 lg:grid-cols-4 mb-6 bg-muted/60 h-auto p-1 gap-1">
+      <Tabs defaultValue={canAccess ? "colaboradores" : "atribuicoes"} className="w-full">
+        <TabsList className="grid w-full sm:w-auto grid-cols-2 lg:grid-cols-3 mb-6 bg-muted/60 h-auto p-1 gap-1">
           {canAccess && (
             <TabsTrigger value="colaboradores" className="flex items-center gap-2 py-2">
               <Users className="h-4 w-4" />
               Colaboradores
             </TabsTrigger>
           )}
-          <TabsTrigger value="estatisticas" className="flex items-center gap-2 py-2">
-            <BarChart3 className="h-4 w-4" />
-            Métricas da Equipe
-          </TabsTrigger>
           <TabsTrigger value="atribuicoes" className="flex items-center gap-2 py-2">
             <Layers className="h-4 w-4" />
             Atribuições
@@ -829,123 +821,6 @@ export default function ProfessoresPage() {
             </Card>
           </TabsContent>
         )}
-
-        <TabsContent value="estatisticas" className="space-y-6 outline-none">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total da Equipe</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{teachers.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {teachers.filter(isActive).length} ativos / {teachers.filter(t => !isActive(t)).length} inativos
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Professores</CardTitle>
-                <Layers className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{teachers.filter(t => t.role === "TEACHER").length}</div>
-                <p className="text-xs text-muted-foreground">Lecionando nas turmas ativas</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Proporção Criança-Prof.</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {teachers.filter(t => t.role === "TEACHER").length > 0
-                    ? (studentsCount / teachers.filter(t => t.role === "TEACHER").length).toFixed(1)
-                    : "N/A"}
-                </div>
-                <p className="text-xs text-muted-foreground">Média de crianças por professor</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Gestão e Secretaria</CardTitle>
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {teachers.filter(t => t.role === "COORDINATOR" || t.role === "SECRETARY" || t.role === "DIRECTOR" || t.role === "ADMIN").length}
-                </div>
-                <p className="text-xs text-muted-foreground">Gestores, coordenação e secretaria</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Distribuição por Função</CardTitle>
-                <CardDescription>Quantidade de colaboradores em cada cargo</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: "Professor", quantidade: teachers.filter(t => t.role === "TEACHER").length },
-                    { name: "Coordenador", quantidade: teachers.filter(t => t.role === "COORDINATOR").length },
-                    { name: "Secretário", quantidade: teachers.filter(t => t.role === "SECRETARY").length },
-                    { name: "Diretor", quantidade: teachers.filter(t => t.role === "DIRECTOR").length },
-                    { name: "Administrador", quantidade: teachers.filter(t => t.role === "ADMIN").length },
-                  ]}>
-                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
-                    <Bar dataKey="quantidade" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Informações Administrativas</CardTitle>
-                <CardDescription>Carga horária e dados agregados</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total de Crianças Ativas:</span>
-                    <span className="font-semibold">{studentsCount}</span>
-                  </div>
-                  <hr className="border-border/50" />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total de Turmas Cadastradas:</span>
-                    <span className="font-semibold">{classes.length}</span>
-                  </div>
-                  <hr className="border-border/50" />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Média de Turmas por Professor:</span>
-                    <span className="font-semibold">
-                      {teachers.filter(t => t.role === "TEACHER").length > 0
-                        ? (classes.length / teachers.filter(t => t.role === "TEACHER").length).toFixed(1)
-                        : "0"}
-                    </span>
-                  </div>
-                  <hr className="border-border/50" />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Status da Equipe:</span>
-                    <span className="font-semibold text-emerald-500">
-                      {teachers.filter(isActive).length} Ativos
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="atribuicoes" className="space-y-6 outline-none">
           {classes.filter(c => !c.professorId || c.professorId === "").length > 0 && (
