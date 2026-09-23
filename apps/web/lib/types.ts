@@ -204,19 +204,3 @@ export interface Announcement {
   } | null
   createdAt: string
 }
-
-export interface Nota {
-  id: string
-  studentId: string
-  studentName?: string
-  classId: string
-  disciplina: string
-  tipo: 'prova' | 'trabalho' | 'participacao' | 'outro'
-  nota: number
-  notaMaxima: number
-  data: string
-  observacoes: string
-  professorId?: string
-  professor?: string
-  createdAt: string
-}

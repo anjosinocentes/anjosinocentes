@@ -1,7 +1,7 @@
 import { API_URL, refreshSession } from './auth'
-import type { Aluno, Turma, Course, Evento, PlanoAula, Teacher, Announcement, AnnouncementAttachment, AnnouncementTipo, Nota, StudentAttachment, Pdi, PdiTracking, PdiEvolution, PdiEvent } from './types'
+import type { Aluno, Turma, Course, Evento, PlanoAula, Teacher, Announcement, AnnouncementAttachment, AnnouncementTipo, StudentAttachment, Pdi, PdiTracking, PdiEvolution, PdiEvent } from './types'
 
-export type { Announcement, AnnouncementAttachment, AnnouncementTipo, Nota, StudentAttachment, Pdi, PdiTracking, PdiEvolution, PdiEvent }
+export type { Announcement, AnnouncementAttachment, AnnouncementTipo, StudentAttachment, Pdi, PdiTracking, PdiEvolution, PdiEvent }
 
 export interface StudentStats {
   totalCount: number
@@ -16,7 +16,6 @@ export interface StudentStats {
     id: string
     nome: string
     curso: string
-    mediaNotas: number | null
     frequencia: number | null
     motivo: string
   }>
@@ -422,40 +421,6 @@ export async function deleteAnnouncement(id: string): Promise<void> {
   await request<void>(`/announcements/${id}`, {
     method: 'DELETE',
     body: undefined,
-  })
-}
-
-// Grades (Notas)
-export async function getGrades(classId?: string, studentId?: string): Promise<Nota[]> {
-  let query = ''
-  const params: string[] = []
-  if (classId) params.push(`classId=${classId}`)
-  if (studentId) params.push(`studentId=${studentId}`)
-  if (params.length > 0) {
-    query = `?${params.join('&')}`
-  }
-  const data = await request<{ grades: Nota[] }>(`/grades${query}`)
-  return data.grades || []
-}
-
-export async function createGrade(grade: any): Promise<Nota> {
-  const data = await request<{ grade: Nota }>('/grades', {
-    method: 'POST',
-    body: JSON.stringify(grade),
-  })
-  return data.grade
-}
-
-export async function updateGrade(id: string, grade: any): Promise<void> {
-  await request<void>(`/grades/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(grade),
-  })
-}
-
-export async function deleteGrade(id: string): Promise<void> {
-  await request<void>(`/grades/${id}`, {
-    method: 'DELETE',
   })
 }
 
