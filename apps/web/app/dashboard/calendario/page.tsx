@@ -257,7 +257,7 @@ export default function CalendarioPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><CalendarIcon className="h-7 w-7 text-primary" />Calendário</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2"><CalendarIcon className="h-7 w-7 text-primary" />Calendário</h1>
           <p className="text-muted-foreground">Visualize e gerencie eventos e aulas</p>
         </div>
         

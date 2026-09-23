@@ -84,7 +84,7 @@ export default function AjudaPage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
           <HelpCircle className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2"><HelpCircle className="h-7 w-7 text-primary" />Central de Ajuda</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center justify-center gap-2"><HelpCircle className="h-7 w-7 text-primary" />Central de Ajuda</h1>
         <p className="text-muted-foreground mt-2">
           Encontre respostas para suas dúvidas ou entre em contato conosco
         </p>

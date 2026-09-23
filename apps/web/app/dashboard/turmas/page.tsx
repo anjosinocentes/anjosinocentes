@@ -284,7 +284,7 @@ export default function TurmasPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><GraduationCap className="h-7 w-7 text-primary" />Turmas</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2"><GraduationCap className="h-7 w-7 text-primary" />Turmas</h1>
           <p className="text-muted-foreground">Gerencie as turmas do projeto</p>
         </div>
              {canManage && (

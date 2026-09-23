@@ -164,7 +164,7 @@ export default function ConfiguracoesPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Settings className="h-7 w-7 text-primary" />Configurações</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2"><Settings className="h-7 w-7 text-primary" />Configurações</h1>
           <p className="text-muted-foreground">Gerencie as preferências do sistema</p>
         </div>
 
