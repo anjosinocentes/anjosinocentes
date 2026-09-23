@@ -4,6 +4,7 @@ import { csvCell } from "@/lib/csv"
 
 import { useState, useEffect } from "react"
 import { RequirePermission } from "@/components/auth/require-permission"
+import { useAuth } from "@/components/auth/auth-provider"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -123,6 +124,10 @@ const normalizeText = (str: string) =>
   (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
 
 export default function AlunosPage() {
+  const { user } = useAuth()
+  // Exportar/Importar CSV expõe dados sensíveis de menores (CPF, endereço, telefone) em massa -
+  // restrito a Administrador/Diretor, mesmo que outros cargos tenham a permissão "alunos".
+  const canBulkCsv = user?.role === "ADMIN" || user?.role === "DIRECTOR"
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [classes, setClasses] = useState<Turma[]>([])
   const [cursosList, setCursosList] = useState<Course[]>([])
@@ -496,6 +501,7 @@ export default function AlunosPage() {
 
   // Export current student list to CSV
   const handleExportCSV = () => {
+    if (!canBulkCsv) return
     const headers = ["Nome", "CPF", "Data de Nascimento", "Email", "Telefone", "Telefone Responsável", "Endereço", "Oficina"]
     const rows = alunos.map(a => [
       a.nome,
@@ -582,6 +588,7 @@ export default function AlunosPage() {
 
   // Confirm CSV bulk import
   const handleConfirmImport = async () => {
+    if (!canBulkCsv) return
     if (!csvPreview || csvPreview.length === 0) return
     
     const validRows = csvPreview.filter(r => r.isValid)
@@ -684,22 +691,26 @@ export default function AlunosPage() {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <Button 
-            variant="outline"
-            onClick={handleExportCSV}
-            className="border-primary text-primary hover:bg-primary/10 font-semibold shadow-sm text-xs"
-          >
-            <Download className="h-4 w-4 mr-1.5" />
-            Exportar CSV
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setCsvImportOpen(true)}
-            className="border-primary text-primary hover:bg-primary/10 font-semibold shadow-sm text-xs"
-          >
-            <Upload className="h-4 w-4 mr-1.5" />
-            Importar CSV
-          </Button>
+          {canBulkCsv && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleExportCSV}
+                className="border-primary text-primary hover:bg-primary/10 font-semibold shadow-sm text-xs"
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Exportar CSV
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCsvImportOpen(true)}
+                className="border-primary text-primary hover:bg-primary/10 font-semibold shadow-sm text-xs"
+              >
+                <Upload className="h-4 w-4 mr-1.5" />
+                Importar CSV
+              </Button>
+            </>
+          )}
 
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open)
@@ -1099,7 +1110,7 @@ export default function AlunosPage() {
       </div>
 
       {/* CSV Import Dialog */}
-      <Dialog open={csvImportOpen} onOpenChange={setCsvImportOpen}>
+      <Dialog open={canBulkCsv && csvImportOpen} onOpenChange={setCsvImportOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-background border border-border">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
