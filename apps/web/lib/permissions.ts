@@ -40,6 +40,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.ALUNOS, PERMISSIONS.TURMAS, PERMISSIONS.PRESENCA, PERMISSIONS.CALENDARIO,
     PERMISSIONS.COMUNICACAO,
   ],
+  // Assistente Social: acompanha o desenvolvimento das crianças (PDI cobre as áreas familiar,
+  // social, psicológica e de saúde) e precisa dos dados cadastrais delas - sem gestão de
+  // turmas/aulas, que não fazem parte da função.
+  SOCIAL_WORKER: [
+    PERMISSIONS.ALUNOS, PERMISSIONS.PDIS, PERMISSIONS.CALENDARIO, PERMISSIONS.COMUNICACAO,
+  ],
   TEACHER: [
     PERMISSIONS.PRESENCA, PERMISSIONS.PLANO_AULA, PERMISSIONS.CALENDARIO, PERMISSIONS.COMUNICACAO,
   ],

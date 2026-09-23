@@ -31,6 +31,7 @@ const cargoLabels: Record<string, string> = {
   DIRECTOR: "Diretor",
   COORDINATOR: "Coordenador",
   SECRETARY: "Secretário(a)",
+  SOCIAL_WORKER: "Assistente Social",
   TEACHER: "Professor",
   STUDENT: "Criança",
 }

@@ -127,6 +127,8 @@ const renderRoleBadge = (role?: string) => {
       return <Badge className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Coordenador</Badge>
     case "SECRETARY":
       return <Badge className="bg-blue-600 hover:bg-blue-700 text-white font-bold">Secretário</Badge>
+    case "SOCIAL_WORKER":
+      return <Badge className="bg-teal-600 hover:bg-teal-700 text-white font-bold">Assistente Social</Badge>
     case "TEACHER":
       return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Professor</Badge>
     case "STUDENT":
@@ -406,6 +408,7 @@ export default function ProfessoresPage() {
       else if (t.role === "DIRECTOR") cargo = "Diretor"
       else if (t.role === "COORDINATOR") cargo = "Coordenador"
       else if (t.role === "SECRETARY") cargo = "Secretário(a)"
+      else if (t.role === "SOCIAL_WORKER") cargo = "Assistente Social"
       else if (t.role === "TEACHER") cargo = "Professor"
       else if (t.role === "STUDENT") cargo = "Criança"
 
@@ -561,6 +564,7 @@ export default function ProfessoresPage() {
                         <SelectItem value="TEACHER">Professor</SelectItem>
                         <SelectItem value="COORDINATOR">Coordenador</SelectItem>
                         <SelectItem value="SECRETARY">Secretário(a)</SelectItem>
+                        <SelectItem value="SOCIAL_WORKER">Assistente Social</SelectItem>
                         {/* Só Diretor/Admin podem criar ou promover a Diretor (evita escalonamento pelo Coordenador) */}
                         {isAdminOrDirector && <SelectItem value="DIRECTOR">Diretor(a)</SelectItem>}
                       </SelectContent>

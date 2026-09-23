@@ -142,13 +142,13 @@ export const teacherSchema = z.object({
   name: trimmedString(2, 150, "Nome"),
   email: z.string({ required_error: "E-mail é obrigatório" }).trim().refine(isValidEmailFormat, "E-mail inválido"),
   password: z.string().optional(),
-  role: z.enum(["ADMIN", "DIRECTOR", "COORDINATOR", "SECRETARY", "TEACHER"]).optional(),
+  role: z.enum(["ADMIN", "DIRECTOR", "COORDINATOR", "SECRETARY", "SOCIAL_WORKER", "TEACHER"]).optional(),
 }).passthrough()
 
 export const teacherUpdateSchema = z.object({
   name: trimmedString(2, 150, "Nome").optional(),
   email: z.string().trim().refine(isValidEmailFormat, "E-mail inválido").optional(),
-  role: z.enum(["ADMIN", "DIRECTOR", "COORDINATOR", "SECRETARY", "TEACHER"]).optional(),
+  role: z.enum(["ADMIN", "DIRECTOR", "COORDINATOR", "SECRETARY", "SOCIAL_WORKER", "TEACHER"]).optional(),
 }).passthrough()
 
 export const attendanceRecordSchema = z.object({

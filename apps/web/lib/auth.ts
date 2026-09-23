@@ -1,7 +1,7 @@
 const USER_KEY = "anjos_user"
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
 
-export type UserRole = "ADMIN" | "DIRECTOR" | "COORDINATOR" | "SECRETARY" | "TEACHER" | "STUDENT"
+export type UserRole = "ADMIN" | "DIRECTOR" | "COORDINATOR" | "SECRETARY" | "SOCIAL_WORKER" | "TEACHER" | "STUDENT"
 
 export type AuthUser = {
   id: string
