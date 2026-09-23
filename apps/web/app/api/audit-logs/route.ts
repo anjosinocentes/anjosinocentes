@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/server/server-db"
-import { requireTeamAdmin } from "@/lib/server/server-auth"
+import { requireRole } from "@/lib/server/server-auth"
 
 // Alguns registros antigos foram gravados com um esquema diferente
 // (user_id/details/resource_id/timestamp em vez de userName/description/targetId/createdAt).
@@ -19,7 +19,10 @@ function normalizeAuditLog(doc: any) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireTeamAdmin(req)
+  // Auditoria é mais sensível que o resto da gestão de equipe (expõe o histórico de ações de
+  // todo mundo) - restrita só ao ADMIN, diferente das outras rotas de Equipe (que usam
+  // requireTeamAdmin, ADMIN/DIRETOR).
+  const auth = await requireRole(req, "ADMIN")
   if (auth instanceof NextResponse) return auth
   try {
     const db = await getDb()

@@ -144,6 +144,9 @@ export default function ProfessoresPage() {
   // O servidor também exige ADMIN/Diretor (requireTeamAdmin), então esconder aqui é só reflexo da UI.
   const isAdminOrDirector = user?.role === "ADMIN" || user?.role === "DIRECTOR"
   const canAccess = isAdminOrDirector
+  // Auditoria (logs de todas as ações) é mais sensível que o resto da gestão de equipe -
+  // restrita só ao ADMIN. O servidor também exige ADMIN (requireRole "ADMIN" em /api/audit-logs).
+  const isAdmin = user?.role === "ADMIN"
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -202,7 +205,7 @@ export default function ProfessoresPage() {
       setListLoading(false)
     }
 
-    if (isAdminOrDirector) {
+    if (isAdmin) {
       getAuditLogs().then(setLogs).catch(err => console.error("Error loading logs:", err))
     }
 
@@ -671,7 +674,7 @@ export default function ProfessoresPage() {
             <Layers className="h-4 w-4" />
             Atribuições
           </TabsTrigger>
-          {isAdminOrDirector && (
+          {isAdmin && (
             <TabsTrigger value="auditoria" className="flex items-center gap-2 py-2">
               <History className="h-4 w-4" />
               Auditoria
@@ -937,7 +940,7 @@ export default function ProfessoresPage() {
           </div>
         </TabsContent>
 
-        {isAdminOrDirector && (
+        {isAdmin && (
           <TabsContent value="auditoria" className="space-y-6 outline-none">
             <Card className="border-border/50">
               <CardHeader>

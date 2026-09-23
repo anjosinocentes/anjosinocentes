@@ -104,8 +104,9 @@ export function permissionsActorCannotGrant(actor: AuthedUser, requested: string
   return (requested || []).filter((p) => !owned.has(p))
 }
 
-// Gestão de equipe (criar/editar/excluir colaborador, cargos, permissões, logs de auditoria) é
-// EXCLUSIVA de ADMIN/DIRETOR - nunca liberada por uma permissão de módulo genérica.
+// Gestão de equipe (criar/editar/excluir colaborador, cargos, permissões) é EXCLUSIVA de
+// ADMIN/DIRETOR - nunca liberada por uma permissão de módulo genérica. Auditoria é mais sensível
+// e usa requireRole(req, "ADMIN") direto na rota, não este helper.
 export async function requireTeamAdmin(req: Request): Promise<AuthedUser | NextResponse> {
   return requireRole(req, "DIRECTOR") // hasRole já inclui ADMIN automaticamente
 }
