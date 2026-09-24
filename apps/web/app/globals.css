@@ -134,6 +134,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Safari do iPhone ignora width:100% em campos de data/hora (usa largura nativa própria) e
+     estoura o card/tela. Sem a aparência nativa eles passam a respeitar a largura do layout. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Sem a aparência nativa o iOS centraliza o valor; alinha à esquerda como os outros campos. */
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
 }
 
 @media print {

@@ -545,7 +545,7 @@ export default function AulasPage() {
                 </Select>
               </div>
               <div className="flex items-end gap-2">
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-w-0 sm:flex-none">
                   <FieldLabel htmlFor="filtroDataInicio" className="text-xs text-muted-foreground font-normal">De</FieldLabel>
                   <Input
                     id="filtroDataInicio"
@@ -555,7 +555,7 @@ export default function AulasPage() {
                     className="w-full sm:w-40"
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-w-0 sm:flex-none">
                   <FieldLabel htmlFor="filtroDataFim" className="text-xs text-muted-foreground font-normal">Até</FieldLabel>
                   <Input
                     id="filtroDataFim"
